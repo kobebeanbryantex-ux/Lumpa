@@ -2333,7 +2333,7 @@ dependencies = [
  "iterator-sorted",
  "k256",
  "pbkdf2",
- "rand 0.8.7",
+ "rand 0.8.8",
  "scrypt",
  "serde",
  "sha2",
@@ -3641,7 +3641,7 @@ dependencies = [
  "hex",
  "keyring",
  "png 0.17.16",
- "rand 0.8.7",
+ "rand 0.9.4",
  "reqwest 0.12.28",
  "rusqlite",
  "serde",
@@ -3663,9 +3663,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.8.7"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22f6172bdec972074665ed81ed53b71da00bfc44b65a753cfde883ec4c702a1a"
+checksum = "e058c7de0b26af77780c769414d6257830bb240f3c38477dbc2c16e5f54d6d4c"
 dependencies = [
  "libc",
  "rand_chacha 0.3.1",
@@ -4631,7 +4631,7 @@ dependencies = [
  "libsodium-sys-stable",
  "log",
  "nix",
- "rand 0.8.7",
+ "rand 0.8.8",
  "serde",
  "thiserror 1.0.69",
  "windows 0.36.1",
@@ -4644,7 +4644,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8300214898af5e153e7f66e49dbd1c6a21585f2d592d9f24f58b969792475ed6"
 dependencies = [
- "rand 0.8.7",
+ "rand 0.8.8",
  "stronghold-derive",
 ]
 
