@@ -1,0 +1,6 @@
+.venv/
+models/**
+!models/README.md
+outputs/
+__pycache__/
+*.pyc

@@ -1,0 +1,197 @@
+name: Windows release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        type: choice
+        options: [beta, stable]
+        default: beta
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      LUMPA_UPDATER_PUBKEY: ${{ secrets.LUMPA_UPDATER_PUBKEY }}
+      LUMPA_OSS_UPDATE_BASE: ${{ vars.LUMPA_OSS_UPDATE_BASE }}
+      LUMPA_GITHUB_UPDATE_BASE: https://github.com/${{ github.repository }}/releases/download/lumpa-updates
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+      AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+      AZURE_CERT_PROFILE: ${{ vars.AZURE_CERT_PROFILE }}
+      OSS_ENDPOINT: ${{ vars.OSS_ENDPOINT }}
+      OSS_BUCKET: ${{ vars.OSS_BUCKET }}
+      OSS_PREFIX: ${{ vars.OSS_PREFIX }}
+      OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+      OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Enforce release credentials and stable certificate gate
+        shell: pwsh
+        run: |
+          $common = @(
+            "TAURI_SIGNING_PRIVATE_KEY",
+            "LUMPA_UPDATER_PUBKEY",
+            "LUMPA_OSS_UPDATE_BASE",
+            "OSS_ENDPOINT",
+            "OSS_BUCKET",
+            "OSS_ACCESS_KEY_ID",
+            "OSS_ACCESS_KEY_SECRET"
+          )
+          $stable = @(
+            "AZURE_CLIENT_ID",
+            "AZURE_CLIENT_SECRET",
+            "AZURE_TENANT_ID",
+            "AZURE_SIGNING_ENDPOINT",
+            "AZURE_SIGNING_ACCOUNT",
+            "AZURE_CERT_PROFILE"
+          )
+          $missing = @()
+          foreach ($name in $common) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { $missing += $name }
+          }
+          if ($env:CHANNEL -eq "stable") {
+            foreach ($name in $stable) {
+              if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { $missing += $name }
+            }
+          }
+          if ($missing.Count -gt 0) { throw "Release is blocked because required configuration is missing: $($missing -join ', ')" }
+
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - run: npm run web:build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - run: node scripts/scan-secrets.mjs .
+      - name: Install Azure Artifact Signing CLI
+        if: inputs.channel == 'stable'
+        run: cargo install artifact-signing-cli --locked
+      - name: Build signed stable installer
+        if: inputs.channel == 'stable'
+        run: npm run tauri:build -- --bundles nsis --config src-tauri/tauri.release.conf.json
+      - name: Build updater-signed beta RC
+        if: inputs.channel == 'beta'
+        run: npm run tauri:build -- --bundles nsis
+
+      - name: Verify stable Authenticode signatures
+        if: inputs.channel == 'stable'
+        shell: pwsh
+        run: |
+          $targets = @(
+            (Get-ChildItem -LiteralPath "src-tauri/target/release" -File -Filter "*.exe"),
+            (Get-ChildItem -LiteralPath "src-tauri/target/release/bundle/nsis" -File -Filter "*.exe")
+          )
+          if ($targets.Count -lt 2) { throw "Expected signed application and NSIS installer were not produced." }
+          foreach ($target in $targets) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $target.FullName
+            if ($signature.Status -ne "Valid") { throw "Invalid Authenticode signature: $($target.Name) ($($signature.Status))" }
+          }
+
+      - name: Stage immutable release artifacts
+        id: stage
+        shell: pwsh
+        run: |
+          $version = (Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json).version
+          $bundle = Get-ChildItem -LiteralPath "src-tauri/target/release/bundle/nsis" -File -Filter "*.nsis.zip" | Select-Object -First 1
+          if (-not $bundle) { throw "Tauri updater bundle was not produced." }
+          $signature = Get-Item -LiteralPath "$($bundle.FullName).sig"
+          $installer = Get-ChildItem -LiteralPath "src-tauri/target/release/bundle/nsis" -File -Filter "*-setup.exe" | Select-Object -First 1
+          if (-not $installer) { throw "NSIS installer was not produced." }
+          $releaseRoot = New-Item -ItemType Directory -Force -Path "artifacts/release"
+          $common = New-Item -ItemType Directory -Force -Path "artifacts/release/common"
+          $packageName = "Lumpa_${version}_x64-setup.nsis.zip"
+          $installerName = "Lumpa_${version}_x64-setup.exe"
+          Copy-Item -LiteralPath $bundle.FullName -Destination "$($common.FullName)/$packageName" -Force
+          Copy-Item -LiteralPath $signature.FullName -Destination "$($common.FullName)/$packageName.sig" -Force
+          Copy-Item -LiteralPath $installer.FullName -Destination "$($common.FullName)/$installerName" -Force
+          git log -20 --pretty=format:"- %s" | Set-Content -Encoding utf8 -LiteralPath "$($releaseRoot.FullName)/RELEASE_NOTES.md"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "package=$($common.FullName)/$packageName" >> $env:GITHUB_OUTPUT
+          "signature=$($common.FullName)/$packageName.sig" >> $env:GITHUB_OUTPUT
+
+      - name: Generate SBOM
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/release/sbom" | Out-Null
+          npx --yes @cyclonedx/cyclonedx-npm@latest --output-file artifacts/release/sbom/desktop-web.cdx.json
+          Push-Location services/gateway
+          npm ci
+          npx --yes @cyclonedx/cyclonedx-npm@latest --output-file ../../artifacts/release/sbom/gateway.cdx.json
+          Pop-Location
+          cargo install cargo-cyclonedx --locked
+          cargo cyclonedx --manifest-path src-tauri/Cargo.toml --format json --output-cdx
+          Copy-Item -LiteralPath "src-tauri/rabbit-desk-pet.cdx.json" -Destination "artifacts/release/sbom/desktop-rust.cdx.json" -Force
+
+      - name: Build channel manifests and shared hashes
+        shell: pwsh
+        run: |
+          node scripts/build-update-manifests.mjs `
+            --version "${{ steps.stage.outputs.version }}" `
+            --channel "$env:CHANNEL" `
+            --package "${{ steps.stage.outputs.package }}" `
+            --signature "${{ steps.stage.outputs.signature }}" `
+            --notes "artifacts/release/RELEASE_NOTES.md" `
+            --oss-base "$env:LUMPA_OSS_UPDATE_BASE" `
+            --github-base "$env:LUMPA_GITHUB_UPDATE_BASE" `
+            --output "artifacts/release"
+          Copy-Item -Path "artifacts/release/common/*" -Destination "artifacts/release/oss/$env:CHANNEL" -Force
+          Copy-Item -Path "artifacts/release/common/*" -Destination "artifacts/release/github" -Force
+          Copy-Item -Path "artifacts/release/sbom/*" -Destination "artifacts/release/oss/$env:CHANNEL" -Force
+          Copy-Item -Path "artifacts/release/sbom/*" -Destination "artifacts/release/github" -Force
+          $hashFiles = Get-ChildItem -LiteralPath "artifacts/release/common","artifacts/release/sbom" -File
+          $hashLines = foreach ($file in $hashFiles) {
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash.ToLowerInvariant()
+            "$hash  $($file.Name)"
+          }
+          $hashLines | Sort-Object | Set-Content -Encoding ascii -LiteralPath "artifacts/release/oss/$env:CHANNEL/SHA256SUMS.txt"
+          Copy-Item -LiteralPath "artifacts/release/oss/$env:CHANNEL/SHA256SUMS.txt" -Destination "artifacts/release/github/SHA256SUMS.txt" -Force
+          node scripts/scan-secrets.mjs artifacts/release
+
+      - name: Publish persistent updater assets and version release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $versionTag = "v${{ steps.stage.outputs.version }}"
+          if (-not (gh release view lumpa-updates 2>$null)) {
+            gh release create lumpa-updates --title "Lumpa updater assets" --notes "Signed update manifests and immutable packages for stable and beta channels."
+          }
+          gh release upload lumpa-updates artifacts/release/github/* --clobber
+          if (-not (gh release view $versionTag 2>$null)) {
+            $extra = if ($env:CHANNEL -eq "beta") { @("--prerelease") } else { @() }
+            gh release create $versionTag artifacts/release/github/* --title "Lumpa ${{ steps.stage.outputs.version }}" --notes-file artifacts/release/RELEASE_NOTES.md @extra
+          } else {
+            gh release upload $versionTag artifacts/release/github/* --clobber
+          }
+
+      - name: Publish identical signed artifacts to Alibaba Cloud OSS
+        run: node scripts/upload-oss.mjs artifacts/release/oss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lumpa-${{ inputs.channel }}-${{ steps.stage.outputs.version }}
+          path: artifacts/release
+          if-no-files-found: error

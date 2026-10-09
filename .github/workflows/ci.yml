@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/scan-secrets.mjs .
+
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run web:build
+      - run: npm test
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - uses: rustsec/audit-check@v2
+        with:
+          workingDirectory: src-tauri
+
+  gateway:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lumpa
+          POSTGRES_PASSWORD: lumpa-ci-password
+          POSTGRES_DB: lumpa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lumpa -d lumpa_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: services/gateway
+    env:
+      TEST_DATABASE_URL: postgresql://lumpa:lumpa-ci-password@127.0.0.1:5432/lumpa_test
+      TEST_REDIS_URL: redis://127.0.0.1:6379/15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/gateway/package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run lint
+      - run: npm test
+
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm ci
+        working-directory: services/gateway
+      - run: mkdir -p artifacts/sbom
+      - run: npx --yes @cyclonedx/cyclonedx-npm@latest --output-file artifacts/sbom/desktop-web.cdx.json
+      - run: npx --yes @cyclonedx/cyclonedx-npm@latest --output-file ../../artifacts/sbom/gateway.cdx.json
+        working-directory: services/gateway
+      - run: cargo install cargo-cyclonedx --locked
+      - run: cargo cyclonedx --manifest-path src-tauri/Cargo.toml --format json --output-cdx
+      - run: cp src-tauri/rabbit-desk-pet.cdx.json artifacts/sbom/desktop-rust.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lumpa-sbom
+          path: artifacts/sbom
+          if-no-files-found: error

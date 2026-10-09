@@ -1,0 +1,15 @@
+services:
+  pet-studio:
+    build: .
+    env_file: .env
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - pet-studio-data:/data/pet-studio
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  pet-studio-data:
