@@ -36,7 +36,7 @@ tauri-plugin-stronghold = "2"
 tauri-plugin-updater = "2.10"
 tokio = { version = "1", features = ["time"] }
 url = "2"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "8", default-features = false, features = ["deflate"] }
 
 [profile.dev.package.scrypt]
 opt-level = 3
