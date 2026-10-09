@@ -21,7 +21,7 @@ chrono-tz = "0.10"
 gif = "0.13"
 hex = "0.4"
 keyring = "3"
-png = "0.17"
+png = "0.18"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["json", "multipart", "rustls-tls", "stream"], default-features = false }
 rusqlite = { version = "0.32", features = ["bundled"] }
