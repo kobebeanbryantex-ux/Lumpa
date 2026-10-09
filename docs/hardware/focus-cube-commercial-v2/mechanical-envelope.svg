@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050">
+  <defs>
+    <style>
+      .bg{fill:#f6f2ea}.panel{fill:#fff;stroke:#d9d2c7;stroke-width:2}.shell{fill:#eee4d4;stroke:#594f48;stroke-width:3}.dark{fill:#15191e}.accent{fill:none;stroke:#ef806c;stroke-width:7}.dim{stroke:#2186a6;stroke-width:2;fill:none}.guide{stroke:#9fb2b8;stroke-width:1.5;stroke-dasharray:7 6}.txt{font-family:'Microsoft YaHei',Arial,sans-serif;fill:#302d2a}.h1{font-size:38;font-weight:700}.h2{font-size:25;font-weight:700}.body{font-size:19}.small{font-size:16}.num{font-size:29;font-weight:700;fill:#2186a6}.note{fill:#fff8e7;stroke:#e9bd62;stroke-width:2}.part{fill:#dbe8e8;stroke:#46585e;stroke-width:2}.battery{fill:#b9c3ca;stroke:#4f5961;stroke-width:2}.pcb{fill:#3b8b66;stroke:#235740;stroke-width:2}
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8 0L0 4l8 4z" fill="#2186a6"/></marker>
+  </defs>
+  <rect width="1600" height="1050" class="bg"/>
+  <text x="60" y="68" class="txt h1">LUMPA 商业版 V2｜机械包络与堆叠基线</text>
+  <text x="60" y="102" class="txt body">所有尺寸单位：mm　用于结构建模/RFQ；圆角、拔模、公差和卡扣需 DFM 后冻结</text>
+
+  <rect x="45" y="135" width="480" height="600" rx="20" class="panel"/>
+  <text x="75" y="180" class="txt h2">正视图</text>
+  <rect x="145" y="245" width="280" height="280" rx="46" class="shell"/>
+  <rect x="197" y="297" width="176" height="176" rx="30" class="dark"/>
+  <rect x="207" y="307" width="156" height="156" rx="24" class="accent"/>
+  <rect x="229.6" y="329.6" width="110.9" height="110.9" fill="#050607" stroke="#888" stroke-width="1"/>
+  <text x="244" y="386" fill="#fff" class="txt body">LCD ACTIVE</text>
+  <text x="263" y="414" fill="#fff" class="txt small">27.72²</text>
+  <line x1="145" y1="565" x2="425" y2="565" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="145" y1="530" x2="145" y2="585" class="guide"/><line x1="425" y1="530" x2="425" y2="585" class="guide"/>
+  <text x="267" y="556" class="txt num">70</text>
+  <line x1="105" y1="245" x2="105" y2="525" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="105" y1="245" x2="145" y2="245" class="guide"/><line x1="105" y1="525" x2="145" y2="525" class="guide"/>
+  <text x="72" y="395" class="txt num" transform="rotate(-90 72 395)">70</text>
+  <line x1="197" y1="610" x2="373" y2="610" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="258" y="602" class="txt num">44</text>
+  <text x="124" y="662" class="txt body">外壳：ABS V0 建议 / 1.8–2.0 壁厚</text>
+  <text x="124" y="693" class="txt body">视窗：黑色 PC，背面遮光丝印</text>
+
+  <rect x="550" y="135" width="1005" height="600" rx="20" class="panel"/>
+  <text x="580" y="180" class="txt h2">侧剖面 A–A｜前 → 后</text>
+  <rect x="625" y="255" width="780" height="280" rx="44" class="shell"/>
+  <rect x="640" y="290" width="12" height="210" rx="5" class="dark"/>
+  <rect x="666" y="315" width="22" height="160" class="part"/>
+  <rect x="706" y="300" width="20" height="190" class="pcb"/>
+  <rect x="750" y="315" width="250" height="160" rx="12" class="battery"/>
+  <rect x="1045" y="330" width="32" height="130" rx="6" class="part"/>
+  <rect x="1160" y="369" width="72" height="52" rx="8" class="dark"/>
+  <rect x="1320" y="375" width="40" height="40" rx="10" fill="#20252a"/>
+  <line x1="652" y1="585" x2="666" y2="585" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text x="638" y="620" class="txt small">PC窗</text>
+  <line x1="666" y1="585" x2="688" y2="585" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text x="663" y="646" class="txt small">LCD</text>
+  <line x1="706" y1="585" x2="726" y2="585" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text x="690" y="620" class="txt small">PCB</text>
+  <line x1="750" y1="585" x2="1000" y2="585" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text x="812" y="620" class="txt small">1000 mAh 电池占位 50 × 30 × 6</text>
+  <line x1="1045" y1="585" x2="1077" y2="585" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text x="1016" y="620" class="txt small">扬声器</text>
+  <text x="1130" y="455" class="txt small">电池在中下部</text><text x="1110" y="480" class="txt small">不再增加配重块</text>
+  <text x="1280" y="455" class="txt small">后壳 USB-C</text>
+  <line x1="625" y1="685" x2="1405" y2="685" class="dim" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="625" y1="535" x2="625" y2="700" class="guide"/><line x1="1405" y1="535" x2="1405" y2="700" class="guide"/>
+  <text x="997" y="675" class="txt num">70</text>
+
+  <rect x="45" y="770" width="1510" height="230" rx="20" class="note"/>
+  <text x="75" y="815" class="txt h2">量产结构约束</text>
+  <text x="75" y="855" class="txt body">1. 前窗与 LCD 之间加 0.5 mm 黑色闭孔泡棉，防漏光和跌落异响；LCD 不承担结构受力。</text>
+  <text x="75" y="892" class="txt body">2. ESP32 天线侧靠壳体顶部，天线上下/前方不得放电池、金属涂层、扬声器磁体或铜皮。</text>
+  <text x="75" y="929" class="txt body">3. 后壳用 4 × M2 螺钉 + 隐藏卡扣，优先可维修；首版不采用超声焊死。</text>
+  <text x="75" y="966" class="txt body">4. 本图是包络基线，不是开模图。最终需补齐拔模角、缩水率、GD&amp;T、公差链、跌落与阻燃要求。</text>
+</svg>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050">
+  <defs>
+    <style>
+      .bg{fill:#0d2431}.panel{fill:#112f3e;stroke:#3f6d7e;stroke-width:2}.pcb{fill:#287b5b;stroke:#7ed6ab;stroke-width:4}.ko{fill:#efcf69;fill-opacity:.22;stroke:#f1cf63;stroke-width:2;stroke-dasharray:8 6}.chip{fill:#172027;stroke:#d6e4e7;stroke-width:2}.conn{fill:#cbd3d4;stroke:#f8ffff;stroke-width:2}.wire{stroke:#83d0e5;stroke-width:3;fill:none}.power{stroke:#ffad7d;stroke-width:3;fill:none}.txt{font-family:'Microsoft YaHei',Arial,sans-serif;fill:#eef7f8}.h1{font-size:38;font-weight:700}.h2{font-size:25;font-weight:700}.body{font-size:18}.small{font-size:15}.dim{stroke:#7ed6e8;stroke-width:2;fill:none}.card{fill:#163c4d;stroke:#447c8f;stroke-width:2}
+    </style>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#83d0e5"/></marker>
+  </defs>
+  <rect width="1600" height="1050" class="bg"/>
+  <text x="60" y="68" class="txt h1">LUMPA 商业版 V2｜45 × 45 mm 主板功能分区</text>
+  <text x="60" y="103" class="txt body">这是一张 PCB 约束图，不是原理图/Gerber；元件型号与封装需在 EVT 前冻结</text>
+
+  <rect x="45" y="140" width="690" height="720" rx="20" class="panel"/>
+  <text x="75" y="183" class="txt h2">TOP VIEW｜显示屏朝外，天线朝上</text>
+  <rect x="165" y="245" width="450" height="450" rx="18" class="pcb"/>
+  <rect x="170" y="250" width="440" height="94" rx="12" class="ko"/>
+  <text x="295" y="290" class="txt body">RF 天线净空区</text><text x="250" y="320" class="txt small">禁止铜皮 / 电池 / 扬声器磁体</text>
+  <rect x="310" y="354" width="160" height="78" rx="8" class="chip"/>
+  <text x="325" y="388" class="txt body">ESP32-C3</text><text x="333" y="414" class="txt small">MINI-1 模组</text>
+  <rect x="512" y="390" width="52" height="52" rx="6" class="chip"/><text x="487" y="468" class="txt small">LIS2DH12</text>
+  <rect x="215" y="380" width="55" height="90" rx="7" class="conn"/><text x="202" y="496" class="txt small">LCD FPC</text>
+  <rect x="300" y="506" width="85" height="60" rx="7" class="chip"/><text x="295" y="593" class="txt small">充电/电源</text>
+  <rect x="435" y="506" width="76" height="60" rx="7" class="chip"/><text x="439" y="593" class="txt small">音频功放</text>
+  <rect x="355" y="625" width="70" height="45" rx="8" class="conn"/><text x="354" y="724" class="txt small">后侧 USB-C</text>
+  <circle cx="205" cy="650" r="12" class="conn"/><circle cx="555" cy="650" r="12" class="conn"/>
+  <text x="178" y="682" class="txt small">BAT</text><text x="532" y="682" class="txt small">SPK</text>
+  <circle cx="270" cy="625" r="6" fill="#f4d66d"/><circle cx="290" cy="625" r="6" fill="#f4d66d"/><circle cx="310" cy="625" r="6" fill="#f4d66d"/>
+  <text x="215" y="724" class="txt small">烧录/FCT 测试点</text>
+  <line x1="165" y1="775" x2="615" y2="775" class="dim" marker-start="url(#a)" marker-end="url(#a)"/><text x="364" y="812" class="txt h2">45</text>
+
+  <rect x="770" y="140" width="785" height="720" rx="20" class="panel"/>
+  <text x="800" y="183" class="txt h2">功能与电源路径</text>
+  <rect x="830" y="250" width="145" height="72" rx="12" class="card"/><text x="866" y="294" class="txt body">USB-C 5V</text>
+  <rect x="1040" y="250" width="180" height="72" rx="12" class="card"/><text x="1069" y="282" class="txt body">ESD + 充电</text><text x="1088" y="307" class="txt small">电源路径/保护</text>
+  <rect x="1285" y="250" width="190" height="72" rx="12" class="card"/><text x="1310" y="294" class="txt body">1000 mAh 电池</text>
+  <path d="M975 286H1040M1220 286H1285" class="power" marker-end="url(#a)"/>
+  <rect x="1040" y="410" width="180" height="88" rx="12" class="card"/><text x="1080" y="448" class="txt body">3.3 V 电源</text><text x="1063" y="478" class="txt small">MCU / 屏 / 传感器</text>
+  <path d="M1130 322V410" class="power" marker-end="url(#a)"/>
+  <rect x="1020" y="570" width="220" height="105" rx="14" class="card"/><text x="1050" y="612" class="txt body">ESP32-C3-MINI-1</text><text x="1060" y="642" class="txt small">本地计时 + BLE + 动画</text>
+  <path d="M1130 498V570" class="wire" marker-end="url(#a)"/>
+  <rect x="805" y="740" width="150" height="72" rx="12" class="card"/><text x="848" y="782" class="txt body">LCD</text><text x="831" y="805" class="txt small">SPI / ST7789</text>
+  <rect x="1000" y="740" width="160" height="72" rx="12" class="card"/><text x="1027" y="782" class="txt body">加速度计</text><text x="1027" y="805" class="txt small">I²C / 朝向</text>
+  <rect x="1205" y="740" width="150" height="72" rx="12" class="card"/><text x="1232" y="782" class="txt body">音频功放</text><text x="1230" y="805" class="txt small">PWM / 短音效</text>
+  <rect x="1400" y="740" width="125" height="72" rx="12" class="card"/><text x="1431" y="782" class="txt body">桌面端</text><text x="1437" y="805" class="txt small">BLE</text>
+  <path d="M1080 675L880 740M1120 675L1080 740M1180 675L1280 740M1240 622L1462 740" class="wire" marker-end="url(#a)"/>
+
+  <rect x="45" y="895" width="1510" height="110" rx="18" class="card"/>
+  <text x="75" y="935" class="txt h2">布局冻结条件</text>
+  <text x="75" y="970" class="txt body">天线净空复核｜LCD FPC 实物确认｜充电温升测试｜扬声器磁体远离天线｜USB-C 插拔受力传到壳体｜所有接口具备 ESD 防护｜保留量产测试点</text>
+</svg>

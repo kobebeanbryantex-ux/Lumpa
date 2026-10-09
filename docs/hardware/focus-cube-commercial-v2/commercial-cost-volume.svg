@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs><style>
+    .bg{fill:#f5f7f7}.panel{fill:#fff;stroke:#d7e0e2;stroke-width:2}.txt{font-family:'Microsoft YaHei',Arial,sans-serif;fill:#23323a}.h1{font-size:38;font-weight:700}.h2{font-size:24;font-weight:700}.body{font-size:18}.small{font-size:15}.axis{stroke:#60747e;stroke-width:2}.grid{stroke:#dce5e7;stroke-width:1}.target{stroke:#dc685c;stroke-width:3;stroke-dasharray:9 6}.bar1{fill:#91a7af}.bar2{fill:#70a89b}.bar3{fill:#4b9b7f}.bar4{fill:#2f8768}.bar5{fill:#17674d}.tag{fill:#fff5dd;stroke:#e0b955;stroke-width:2}.ok{fill:#e5f5eb;stroke:#54a979;stroke-width:2}
+  </style></defs>
+  <rect width="1600" height="980" class="bg"/>
+  <text x="60" y="68" class="txt h1">LUMPA 商业版 V2｜成本—产量决策图</text>
+  <text x="60" y="104" class="txt body">人民币/台；柱形为变量制造成本区间，不包含研发、模具与认证的一次性投入</text>
+  <rect x="50" y="140" width="1000" height="700" rx="20" class="panel"/>
+  <line x1="145" y1="215" x2="145" y2="750" class="axis"/><line x1="145" y1="750" x2="980" y2="750" class="axis"/>
+  <line x1="145" y1="650" x2="980" y2="650" class="grid"/><line x1="145" y1="550" x2="980" y2="550" class="grid"/><line x1="145" y1="450" x2="980" y2="450" class="grid"/><line x1="145" y1="350" x2="980" y2="350" class="grid"/><line x1="145" y1="250" x2="980" y2="250" class="grid"/>
+  <text x="95" y="756" class="txt body">0</text><text x="75" y="656" class="txt body">50</text><text x="64" y="556" class="txt body">100</text><text x="64" y="456" class="txt body">150</text><text x="64" y="356" class="txt body">200</text><text x="64" y="256" class="txt body">250</text>
+  <line x1="145" y1="550" x2="980" y2="550" class="target"/><text x="740" y="538" class="txt h2" fill="#dc685c">¥100 制造成本线</text>
+  <rect x="205" y="230" width="110" height="520" class="bar1"/><text x="213" y="215" class="txt body">180–260</text><text x="224" y="790" class="txt h2">50</text><text x="210" y="817" class="txt small">EVT</text>
+  <rect x="365" y="420" width="110" height="330" class="bar2"/><text x="374" y="405" class="txt body">120–165</text><text x="390" y="790" class="txt h2">200</text><text x="372" y="817" class="txt small">DVT</text>
+  <rect x="525" y="526" width="110" height="224" class="bar3"/><text x="540" y="511" class="txt body">88–112</text><text x="548" y="790" class="txt h2">1000</text><text x="532" y="817" class="txt small">PVT</text>
+  <rect x="685" y="566" width="110" height="184" class="bar4"/><text x="700" y="551" class="txt body">75–92</text><text x="708" y="790" class="txt h2">5000</text><text x="710" y="817" class="txt small">MP</text>
+  <rect x="845" y="582" width="110" height="168" class="bar5"/><text x="860" y="567" class="txt body">68–84</text><text x="860" y="790" class="txt h2">10000</text><text x="870" y="817" class="txt small">MP</text>
+
+  <rect x="1085" y="140" width="465" height="330" rx="20" class="tag"/>
+  <text x="1120" y="188" class="txt h2">5000 台：能承诺什么</text>
+  <text x="1120" y="233" class="txt body">✓ 变量制造成本目标 ¥75–92</text>
+  <text x="1120" y="271" class="txt body">✓ 保留屏幕、BLE、音频与电池</text>
+  <text x="1120" y="309" class="txt body">✓ 不使用昂贵开发板</text>
+  <text x="1120" y="347" class="txt body">✗ 不含研发、模具、认证摊销</text>
+  <text x="1120" y="385" class="txt body">✗ 未经 RFQ 不能视为正式报价</text>
+  <text x="1120" y="430" class="txt small">采购红线：屏 ≤18 / 主控 ≤12 / 电池 ≤13 / 壳 ≤10</text>
+
+  <rect x="1085" y="500" width="465" height="340" rx="20" class="ok"/>
+  <text x="1120" y="548" class="txt h2">10000 台：商业化百元目标</text>
+  <text x="1120" y="593" class="txt body">变量制造目标：约 ¥72</text>
+  <text x="1120" y="631" class="txt body">模具治具摊销：约 ¥7</text>
+  <text x="1120" y="669" class="txt body">国内测试摊销示例：约 ¥5</text>
+  <text x="1120" y="707" class="txt body">Bluetooth 资质：按实际汇率摊销</text>
+  <text x="1120" y="745" class="txt body">目标全口径：约 ¥90–100</text>
+  <text x="1120" y="795" class="txt small">注：研发投入、渠道费用、税务与退换货另列</text>
+
+  <text x="60" y="910" class="txt h2">下单闸门：PVT 一次通过率 ≥98%｜返修率 ≤1.5%｜12 项 BOM 均不越采购红线｜认证路径有书面结论</text>
+  <text x="60" y="946" class="txt body">成本是工程目标，不是营销承诺；只有供应商盖章报价、试产良率和实验室结论齐全后才能冻结。</text>
+</svg>

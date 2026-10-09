@@ -1,0 +1,116 @@
+.lumpa1-toolbar {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(73, 56, 44, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 12px 36px rgba(53, 37, 28, 0.14);
+  backdrop-filter: blur(18px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hide toolbar in floating desk pet mode so it never obscures the pet image! */
+html.floating-shell .lumpa1-toolbar,
+body.floating-shell .lumpa1-toolbar {
+  display: none !important;
+}
+
+/* Collapsed state styles */
+.lumpa1-toolbar.collapsed .lumpa1-toolbar-content {
+  display: none !important;
+}
+
+.lumpa1-toolbar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 12px;
+  padding: 7px 11px;
+  color: #735747;
+  background: rgba(239, 230, 220, 0.9);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.lumpa1-toolbar-toggle:hover {
+  background: #efe6dc;
+  transform: scale(1.03);
+}
+
+.lumpa1-toolbar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lumpa1-toolbar button,
+.lumpa1-button {
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 13px;
+  color: #3b2d25;
+  background: #efe6dc;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lumpa1-button.primary,
+.lumpa1-toolbar button:first-child { color: #fffaf5; background: #735747; }
+.lumpa1-button.danger { color: #8d302e; background: #f7e2df; }
+.lumpa1-button:disabled { cursor: not-allowed; opacity: 0.48; }
+.lumpa1-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: rgba(38, 30, 26, 0.48); }
+.lumpa1-modal[hidden],
+.lumpa1-modal.hidden { display: none !important; }
+.lumpa1-dialog { width: min(880px, calc(100vw - 32px)); max-height: min(820px, calc(100vh - 32px)); overflow: auto; border: 1px solid rgba(73, 56, 44, 0.15); border-radius: 24px; padding: 24px; color: #352921; background: #fffdf9; box-shadow: 0 30px 90px rgba(34, 25, 20, 0.24); }
+.lumpa1-dialog.wide { width: min(1100px, calc(100vw - 32px)); }
+.lumpa1-dialog h2 { margin: 0 0 8px; font-size: 25px; }
+.lumpa1-dialog h3 { margin: 22px 0 8px; font-size: 17px; }
+.lumpa1-muted { color: #796b62; font-size: 13px; line-height: 1.6; }
+.lumpa1-status { min-height: 22px; color: #735747; font-size: 13px; }
+.lumpa1-status.error { color: #a13a34; }
+.lumpa1-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.lumpa1-field { display: grid; gap: 6px; font-size: 13px; }
+.lumpa1-field.full { grid-column: 1 / -1; }
+.lumpa1-field input,
+.lumpa1-field select,
+.lumpa1-field textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8ccc1; border-radius: 11px; padding: 10px 11px; color: inherit; background: #fff; font: inherit; }
+.lumpa1-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.lumpa1-choice label,
+.lumpa1-card { border: 1px solid #ded3ca; border-radius: 16px; padding: 16px; background: #fbf7f2; }
+.lumpa1-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+.lumpa1-step[hidden] { display: none; }
+.lumpa1-progress { height: 5px; border-radius: 999px; overflow: hidden; background: #eee6df; margin: 16px 0 22px; }
+.lumpa1-progress span { display: block; height: 100%; background: #735747; transition: width 180ms ease; }
+.lumpa1-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.lumpa1-summary div { border-radius: 14px; padding: 13px; background: #f4eee8; }
+.lumpa1-summary strong { display: block; font-size: 22px; }
+.lumpa1-category-list { display: grid; gap: 8px; }
+.lumpa1-category { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #eee6df; padding: 9px 0; }
+.lumpa1-timeline-layout { display: grid; grid-template-columns: minmax(340px, 1.25fr) minmax(250px, 0.75fr); gap: 18px; }
+.lumpa1-frame-list { display: grid; gap: 8px; max-height: 420px; overflow: auto; }
+.lumpa1-frame-row { display: grid; grid-template-columns: 42px 1fr 90px auto; align-items: center; gap: 9px; border: 1px solid #e2d8cf; border-radius: 13px; padding: 7px; background: #fff; }
+.lumpa1-frame-row img { width: 42px; height: 42px; object-fit: contain; background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 50% / 12px 12px; border-radius: 8px; }
+.lumpa1-frame-row input { width: 100%; }
+.lumpa1-frame-controls { display: flex; gap: 4px; }
+.lumpa1-frame-controls button { border: 0; border-radius: 8px; padding: 5px 7px; cursor: pointer; }
+.lumpa1-preview { display: grid; place-items: center; min-height: 280px; border: 1px solid #ddd2c8; border-radius: 18px; background: repeating-conic-gradient(#ece7e2 0 25%, #fff 0 50%) 50% / 20px 20px; overflow: hidden; }
+.lumpa1-preview img { max-width: 90%; max-height: 320px; object-fit: contain; transform-origin: center bottom; }
+.lumpa1-rule { display: grid; grid-template-columns: 1.3fr repeat(5, minmax(90px, 0.7fr)) auto; gap: 7px; align-items: end; border: 1px solid #e2d8cf; border-radius: 13px; padding: 10px; margin-top: 8px; }
+.lumpa1-rule .lumpa1-field { font-size: 11px; }
+
+@media (max-width: 760px) {
+  .lumpa1-grid, .lumpa1-choice, .lumpa1-timeline-layout { grid-template-columns: 1fr; }
+  .lumpa1-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lumpa1-rule { grid-template-columns: 1fr 1fr; }
+  .lumpa1-toolbar { left: 10px; right: 10px; justify-content: center; }
+}

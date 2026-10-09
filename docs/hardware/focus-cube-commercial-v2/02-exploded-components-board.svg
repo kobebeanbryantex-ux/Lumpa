@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#081a2d"/><stop offset="1" stop-color="#0e2d43"/></linearGradient>
+    <linearGradient id="mask2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#081a2d" stop-opacity=".02"/><stop offset="1" stop-color="#081a2d" stop-opacity=".7"/></linearGradient>
+    <pattern id="grid2" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#8ebbd1" stroke-opacity=".06"/></pattern>
+    <clipPath id="exp"><rect x="40" y="138" width="1840" height="622" rx="28"/></clipPath>
+    <style>
+      .t{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;fill:#edf6f8}.m{fill:#9fb2bb}.h1{font-size:48px;font-weight:800}.h2{font-size:25px;font-weight:750}.body{font-size:18px}.small{font-size:15px}.tiny{font-size:13px}.card{fill:#102f43;stroke:#39627a;stroke-width:1.8}.line{stroke:#ff997f;stroke-width:2;fill:none}.dot{fill:#f48670;stroke:#fff;stroke-width:3}.num{font-size:18px;font-weight:800}.cost{font-size:23px;font-weight:800;fill:#7ee0c0}.tag{fill:#153d53;stroke:#4c7a8f;stroke-width:1.5}
+    </style>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#bg2)"/><rect width="1920" height="1200" fill="url(#grid2)"/>
+  <text x="52" y="68" class="t small" letter-spacing="3">LUMPA · ENGINEERING ARCHITECTURE / 02</text>
+  <text x="52" y="112" class="t h1">内部零件、装配顺序与采购目标</text>
+  <text x="1860" y="77" text-anchor="end" class="t h2">8 个核心总成｜1 块定制主板｜无独立开发板</text><text x="1860" y="108" text-anchor="end" class="t small m">视觉爆炸图用于沟通；料号、FPC、紧固与公差以 EVT 工程图冻结</text>
+  <rect x="40" y="138" width="1840" height="622" rx="28" fill="#102745"/>
+  <image href="commercial-exploded-v3.png" x="40" y="138" width="1840" height="622" preserveAspectRatio="xMidYMid slice" clip-path="url(#exp)"/>
+  <rect x="40" y="138" width="1840" height="622" rx="28" fill="url(#mask2)"/>
+  <path d="M130 260V340M348 244V355M570 235V335M830 215V315M1062 255V365M1260 230V350M1515 224V324M1760 250V350" class="line"/>
+  <g class="t num" text-anchor="middle"><circle cx="130" cy="235" r="24" class="dot"/><text x="130" y="242">01</text><circle cx="348" cy="219" r="24" class="dot"/><text x="348" y="226">02</text><circle cx="570" cy="210" r="24" class="dot"/><text x="570" y="217">03</text><circle cx="830" cy="190" r="24" class="dot"/><text x="830" y="197">04</text><circle cx="1062" cy="230" r="24" class="dot"/><text x="1062" y="237">05</text><circle cx="1260" cy="205" r="24" class="dot"/><text x="1260" y="212">06</text><circle cx="1515" cy="199" r="24" class="dot"/><text x="1515" y="206">07</text><circle cx="1760" cy="225" r="24" class="dot"/><text x="1760" y="232">08</text></g>
+  <rect x="60" y="672" width="520" height="60" rx="14" fill="#091c2c" fill-opacity=".92"/><text x="82" y="699" class="t small">装配方向</text><text x="82" y="721" class="t body">前窗 → LCD → 前框 → PCB → 扬声器 → 电池 → 中框 → 后壳</text>
+  <rect x="1320" y="672" width="535" height="60" rx="14" fill="#091c2c" fill-opacity=".92"/><text x="1342" y="699" class="t small">成本原则</text><text x="1342" y="721" class="t body">所有功能集中于一块 PCB；结构件不超过 4 个注塑件</text>
+
+  <g transform="translate(40 790)">
+    <rect width="445" height="170" rx="20" class="card"/><circle cx="34" cy="34" r="21" class="dot"/><text x="34" y="41" text-anchor="middle" class="t num">01</text><text x="70" y="41" class="t h2">黑色 PC 前窗</text><text x="70" y="72" class="m body">烟熏透黑｜背面遮光丝印｜1.0–1.2 mm</text><text x="24" y="108" class="t small">保护 LCD、统一黑屏观感；周圈闭孔泡棉防漏光。</text><text x="24" y="145" class="cost">结构总成内含 · 目标 ¥7.5</text>
+    <rect x="465" width="445" height="170" rx="20" class="card"/><circle cx="499" cy="34" r="21" class="dot"/><text x="499" y="41" text-anchor="middle" class="t num">02</text><text x="535" y="41" class="t h2">1.54″ IPS LCD</text><text x="535" y="72" class="m body">240×240｜ST7789｜27.72 mm 有效区</text><text x="489" y="108" class="t small">裸屏 + FPC 连接器；动画建议 10–20 fps 控功耗。</text><text x="489" y="145" class="cost">目标 ¥14 · 采购红线 ¥18</text>
+    <rect x="930" width="445" height="170" rx="20" class="card"/><circle cx="964" cy="34" r="21" class="dot"/><text x="964" y="41" text-anchor="middle" class="t num">03</text><text x="1000" y="41" class="t h2">前框 + 珊瑚装饰圈</text><text x="1000" y="72" class="m body">ABS/PC-ABS｜定位柱｜泡棉压紧面</text><text x="954" y="108" class="t small">LCD 只被柔性压紧，不参与跌落受力和壳体锁紧。</text><text x="954" y="145" class="cost">包含在结构目标价中</text>
+    <rect x="1395" width="445" height="170" rx="20" class="card"/><circle cx="1429" cy="34" r="21" class="dot"/><text x="1429" y="41" text-anchor="middle" class="t num">04</text><text x="1465" y="41" class="t h2">45 × 45 mm 主 PCB</text><text x="1465" y="72" class="m body">ESP32-C3｜LIS2DH12｜充电｜功放</text><text x="1419" y="108" class="t small">2 层板优先；顶部保留 RF 天线净空和 FCT 测试点。</text><text x="1419" y="145" class="cost">主控+板+电源目标 ¥22.5</text>
+
+    <rect y="190" width="445" height="170" rx="20" class="card"/><circle cx="34" cy="224" r="21" class="dot"/><text x="34" y="231" text-anchor="middle" class="t num">05</text><text x="70" y="231" class="t h2">扬声器与声腔</text><text x="70" y="262" class="m body">20×30 mm｜8Ω / 1W｜短音效定位</text><text x="24" y="298" class="t small">后腔与泄音孔必须实测，避免猫叫声发闷或破音。</text><text x="24" y="335" class="cost">目标 ¥3.5 · 红线 ¥5</text>
+    <rect x="465" y="190" width="445" height="170" rx="20" class="card"/><circle cx="499" cy="224" r="21" class="dot"/><text x="499" y="231" text-anchor="middle" class="t num">06</text><text x="535" y="231" class="t h2">1000 mAh 电池</text><text x="535" y="262" class="m body">带保护软包｜约 50×30×6 mm 占位</text><text x="489" y="298" class="t small">绝缘片、缓冲泡棉和拉拔胶必须保留；需运输资料。</text><text x="489" y="335" class="cost">目标 ¥10.5 · 红线 ¥13</text>
+    <rect x="930" y="190" width="445" height="170" rx="20" class="card"/><circle cx="964" cy="224" r="21" class="dot"/><text x="964" y="231" text-anchor="middle" class="t num">07</text><text x="1000" y="231" class="t h2">内部中框</text><text x="1000" y="262" class="m body">PCB / 电池 / 扬声器共同定位</text><text x="954" y="298" class="t small">受力件与装饰件分离；USB-C 插拔力传递到中框。</text><text x="954" y="335" class="cost">包含在结构目标价中</text>
+    <rect x="1395" y="190" width="445" height="170" rx="20" class="card"/><circle cx="1429" cy="224" r="21" class="dot"/><text x="1429" y="231" text-anchor="middle" class="t num">08</text><text x="1465" y="231" class="t h2">后壳 + USB-C 开口</text><text x="1465" y="262" class="m body">4×M2 螺钉｜隐藏卡扣｜可拆维修</text><text x="1419" y="298" class="t small">首版不超声焊死；保留电池维修与失效分析能力。</text><text x="1419" y="335" class="cost">紧固辅料目标 ¥1.5</text>
+  </g>
+  <text x="40" y="1180" class="t tiny m">注：爆炸渲染用于结构关系说明，不代表已冻结的 PCB 走线、FPC 方向、螺钉规格或供应商料号；这些必须在 EVT 样机阶段以正式图纸为准。</text>
+</svg>

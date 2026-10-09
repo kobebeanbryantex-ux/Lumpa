@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lumpa
+      POSTGRES_USER: lumpa
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - lumpa-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumpa -d lumpa"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [lumpa-internal]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - lumpa-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [lumpa-internal]
+
+  gateway:
+    build: ./services/gateway
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      DATABASE_URL: postgresql://lumpa:${POSTGRES_PASSWORD}@postgres:5432/lumpa
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      OTP_PEPPER: ${OTP_PEPPER:?OTP_PEPPER is required}
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+      REGISTRATION_INVITE_CODE: ${REGISTRATION_INVITE_CODE:-}
+      MAIL_MODE: smtp
+      SMTP_HOST: ${SMTP_HOST:-smtpdm.aliyun.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:?SMTP_USER is required}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is required}
+      SMTP_FROM: ${SMTP_FROM:?SMTP_FROM is required}
+      UPSTREAM_BASE_URL: ${UPSTREAM_BASE_URL:?UPSTREAM_BASE_URL is required}
+      UPSTREAM_API_KEY: ${UPSTREAM_API_KEY:?UPSTREAM_API_KEY is required}
+      CHAT_MODEL: ${CHAT_MODEL:-gpt-5.4-mini}
+      SPEECH_MODEL: ${SPEECH_MODEL:-gpt-4o-mini-tts}
+      IMAGE_MODEL: ${IMAGE_MODEL:-gpt-image-2}
+      VIDEO_MODEL: ${VIDEO_MODEL:-grok-imagine-video}
+      CHAT_DAILY_LIMIT: ${CHAT_DAILY_LIMIT:-50}
+      SPEECH_DAILY_LIMIT: ${SPEECH_DAILY_LIMIT:-20}
+      IMAGE_DAILY_LIMIT: ${IMAGE_DAILY_LIMIT:-3}
+      VIDEO_DAILY_LIMIT: ${VIDEO_DAILY_LIMIT:-1}
+    expose: ["8080"]
+    networks: [lumpa-internal]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [gateway]
+    environment:
+      LUMPA_DOMAIN: ${LUMPA_DOMAIN:?LUMPA_DOMAIN is required}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./services/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - lumpa-caddy-data:/data
+      - lumpa-caddy-config:/config
+    networks: [lumpa-internal]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  lumpa-internal:
+    driver: bridge
+
+volumes:
+  lumpa-postgres:
+  lumpa-redis:
+  lumpa-caddy-data:
+  lumpa-caddy-config:

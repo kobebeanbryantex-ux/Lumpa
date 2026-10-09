@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3f1eb"/><stop offset="1" stop-color="#e9eef0"/></linearGradient>
+    <style>
+      .t{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;fill:#21313a}.muted{fill:#667a83}.h1{font-size:48px;font-weight:800}.h2{font-size:26px;font-weight:800}.body{font-size:18px}.small{font-size:15px}.tiny{font-size:13px}.card{fill:#fff;stroke:#cbd7db;stroke-width:2}.navy{fill:#0f2c3c}.coral{fill:#ee7e67}.green{fill:#32866d}.amber{fill:#e3ad4f}.line{stroke:#9fb1b8;stroke-width:2}.dash{stroke:#91a8b0;stroke-width:2;stroke-dasharray:7 7;fill:none}.white{fill:#fff}.kpi{font-size:38px;font-weight:850}.pill{fill:#e9f3f3;stroke:#b6ced2;stroke-width:1.5}
+    </style>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#bg3)"/>
+  <rect x="0" y="0" width="1920" height="132" class="navy"/><rect x="50" y="34" width="6" height="64" rx="3" class="coral"/>
+  <text x="78" y="62" class="white small" letter-spacing="3">LUMPA · BUSINESS &amp; MANUFACTURING / 03</text><text x="78" y="108" class="white h1">百元成本如何真正落地</text>
+  <text x="1865" y="72" text-anchor="end" class="white h2">目标不是“BOM 看起来便宜”</text><text x="1865" y="103" text-anchor="end" class="white small">而是 RFQ、试产良率、认证和售后共同成立</text>
+
+  <g transform="translate(50 162)">
+    <rect width="430" height="132" rx="20" class="card"/><text x="28" y="37" class="muted small">5000 台变量制造目标</text><text x="28" y="91" class="t kpi">¥75–92</text><rect x="292" y="70" width="110" height="34" rx="17" class="green"/><text x="347" y="93" text-anchor="middle" class="white small">可低于 ¥100</text>
+    <rect x="460" width="430" height="132" rx="20" class="card"/><text x="488" y="37" class="muted small">1000 台 PVT 预计</text><text x="488" y="91" class="t kpi">¥88–112</text><rect x="752" y="70" width="110" height="34" rx="17" class="amber"/><text x="807" y="93" text-anchor="middle" class="white small">仍有破百风险</text>
+    <rect x="920" width="430" height="132" rx="20" class="card"/><text x="948" y="37" class="muted small">10000 台全口径目标</text><text x="948" y="91" class="t kpi">≈ ¥90–100</text><text x="1298" y="91" text-anchor="end" class="muted small">含主要模具/资质摊销</text>
+    <rect x="1380" width="440" height="132" rx="20" class="card"/><text x="1408" y="37" class="muted small">建议零售价区间</text><text x="1408" y="91" class="t kpi">¥249–299</text><text x="1792" y="91" text-anchor="end" class="muted small">渠道结构需再测算</text>
+  </g>
+
+  <rect x="50" y="324" width="880" height="470" rx="24" class="card"/>
+  <text x="80" y="370" class="t h2">5000 台目标成本拆解｜合计 ¥75.3</text><text x="900" y="370" text-anchor="end" class="muted small">人民币/台 · 工程目标价，不是供应商承诺价</text>
+  <g transform="translate(82 405)">
+    <text x="0" y="20" class="t body">电子核心</text><rect x="140" y="0" width="605" height="28" rx="14" fill="#2d7e8f"/><text x="765" y="21" class="t body" font-weight="700">¥40.3</text><text x="140" y="51" class="muted small">屏幕14 + 主控9.5 + 传感器3.8 + PCB/SMT9.5 + 电源3.5</text>
+    <text x="0" y="96" class="t body">电池与音频</text><rect x="140" y="76" width="210" height="28" rx="14" class="coral"/><text x="370" y="97" class="t body" font-weight="700">¥14.0</text><text x="140" y="127" class="muted small">1000 mAh 电池10.5 + 扬声器/功放3.5</text>
+    <text x="0" y="172" class="t body">结构与辅料</text><rect x="140" y="152" width="135" height="28" rx="14" fill="#d4a45d"/><text x="295" y="173" class="t body" font-weight="700">¥9.0</text><text x="140" y="203" class="muted small">ABS/PC/脚垫7.5 + 螺钉/泡棉/绝缘1.5</text>
+    <text x="0" y="248" class="t body">组装与测试</text><rect x="140" y="228" width="75" height="28" rx="14" class="green"/><text x="235" y="249" class="t body" font-weight="700">¥5.0</text><text x="140" y="279" class="muted small">烧录、FCT、总装、老化抽检</text>
+    <text x="0" y="324" class="t body">包装与准备</text><rect x="140" y="304" width="105" height="28" rx="14" fill="#7f8fa3"/><text x="265" y="325" class="t body" font-weight="700">¥7.0</text><text x="140" y="355" class="muted small">纸盒/纸托4 + 损耗/返修/基础质保3</text>
+  </g>
+
+  <rect x="958" y="324" width="912" height="470" rx="24" class="card"/>
+  <text x="990" y="370" class="t h2">一次性投入 NRE｜不能藏进“低 BOM”</text>
+  <g transform="translate(990 404)">
+    <rect width="850" height="60" rx="14" class="pill"/><text x="20" y="37" class="t body">ID / 结构 / DFM / 手板</text><text x="820" y="37" text-anchor="end" class="t h2">¥20,000–50,000</text>
+    <rect y="72" width="850" height="60" rx="14" class="pill"/><text x="20" y="109" class="t body">注塑模具、治具与首轮修模</text><text x="820" y="109" text-anchor="end" class="t h2">¥45,000–80,000</text>
+    <rect y="144" width="850" height="60" rx="14" class="pill"/><text x="20" y="181" class="t body">PCB / 固件 / 烧录与 FCT 夹具</text><text x="820" y="181" text-anchor="end" class="t h2">¥50,000–100,000</text>
+    <rect y="216" width="850" height="60" rx="14" class="pill"/><text x="20" y="253" class="t body">国内无线 / EMC / 电池资料预算</text><text x="820" y="253" text-anchor="end" class="t h2">¥30,000–100,000+</text>
+    <rect y="288" width="850" height="60" rx="14" fill="#fff4e9" stroke="#ec9d6e" stroke-width="2"/><text x="20" y="325" class="t body">Bluetooth SIG Adopter 完整产品资质费</text><text x="820" y="325" text-anchor="end" class="t h2">US$12,000</text>
+    <text x="0" y="388" class="muted small">模块已有资料可以减少重复测试，但不能直接等于品牌整机完成全部上市义务。</text>
+  </g>
+
+  <rect x="50" y="824" width="1820" height="300" rx="24" class="card"/>
+  <text x="80" y="871" class="t h2">从样机到量产｜建议 12–18 周，不跳阶段</text>
+  <line x1="170" y1="950" x2="1740" y2="950" class="dash"/>
+  <circle cx="190" cy="950" r="20" class="coral"/><circle cx="585" cy="950" r="20" fill="#d6a145"/><circle cx="980" cy="950" r="20" fill="#3d8ca1"/><circle cx="1375" cy="950" r="20" class="green"/><circle cx="1740" cy="950" r="20" class="navy"/>
+  <text x="190" y="925" text-anchor="middle" class="t h2">RFQ</text><text x="190" y="988" text-anchor="middle" class="t body">2 周</text><text x="190" y="1019" text-anchor="middle" class="muted small">3家屏厂 / 3家整机厂</text><text x="190" y="1045" text-anchor="middle" class="muted small">规格书 + 阶梯价 + 交期</text>
+  <text x="585" y="925" text-anchor="middle" class="t h2">EVT 30–50 台</text><text x="585" y="988" text-anchor="middle" class="t body">3–4 周</text><text x="585" y="1019" text-anchor="middle" class="muted small">翻面 / BLE / 屏 / 声音</text><text x="585" y="1045" text-anchor="middle" class="muted small">续航 / 充电温升</text>
+  <text x="980" y="925" text-anchor="middle" class="t h2">DVT 150–200 台</text><text x="980" y="988" text-anchor="middle" class="t body">4–6 周</text><text x="980" y="1019" text-anchor="middle" class="muted small">试模 / 跌落 / ESD</text><text x="980" y="1045" text-anchor="middle" class="muted small">插拔 / 老化 / 认证预扫</text>
+  <text x="1375" y="925" text-anchor="middle" class="t h2">PVT 800–1000 台</text><text x="1375" y="988" text-anchor="middle" class="t body">3–4 周</text><text x="1375" y="1019" text-anchor="middle" class="muted small">工时 / 良率 / 包装运输</text><text x="1375" y="1045" text-anchor="middle" class="muted small">返修流程 / 售后缺陷</text>
+  <text x="1740" y="925" text-anchor="middle" class="t h2">MP 5000+</text><text x="1740" y="988" text-anchor="middle" class="t body">量产闸门</text><text x="1740" y="1019" text-anchor="middle" class="muted small">一次通过率 ≥98%</text><text x="1740" y="1045" text-anchor="middle" class="muted small">返修率 ≤1.5%</text>
+  <rect x="80" y="1072" width="1760" height="36" rx="18" class="navy"/><text x="960" y="1097" text-anchor="middle" class="white small">下单条件：12 项 BOM 均不越采购红线｜认证路径有书面结论｜关键料至少双供应商｜PVT 数据达到闸门</text>
+  <text x="50" y="1174" class="muted tiny">商业判断：5000 台可以承诺制造口径低于 ¥100；若要把主要模具与资质摊销也计入，则按累计 10000 台规划更真实。</text>
+</svg>

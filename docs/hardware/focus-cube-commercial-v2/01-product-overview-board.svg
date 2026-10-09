@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071622"/><stop offset="1" stop-color="#102c3a"/></linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#071622" stop-opacity="0"/><stop offset="1" stop-color="#071622" stop-opacity=".88"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#8fc8d8" stroke-opacity=".07"/></pattern>
+    <clipPath id="hero"><rect x="48" y="154" width="1250" height="700" rx="28"/></clipPath>
+    <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000" flood-opacity=".32"/></filter>
+    <style>
+      .t{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;fill:#eaf5f6}.k{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;fill:#82c9db}.muted{fill:#9fb3ba}.h1{font-size:50px;font-weight:800}.h2{font-size:27px;font-weight:750}.body{font-size:20px}.small{font-size:16px}.tiny{font-size:14px}.card{fill:#102d3a;stroke:#315766;stroke-width:2}.chip{fill:#173d4b;stroke:#436f7e;stroke-width:1.5}.coral{fill:#f48670}.line{stroke:#6bbbd0;stroke-width:2;fill:none}.num{font-size:42px;font-weight:800;fill:#fff}.label{font-size:15px;fill:#93a9b1;letter-spacing:1.5px}
+    </style>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#bg)"/><rect width="1920" height="1200" fill="url(#grid)"/>
+  <rect x="48" y="42" width="6" height="73" rx="3" class="coral"/>
+  <text x="78" y="76" class="t small" letter-spacing="3">LUMPA · COMMERCIAL DESIGN SYSTEM / 01</text>
+  <text x="78" y="118" class="t h1">FOCUS CUBE｜商业量产版产品定义</text>
+  <text x="1850" y="79" text-anchor="end" class="k h2">V2.1</text><text x="1850" y="107" text-anchor="end" class="t small muted">2026.09 · COST TARGET EDITION</text>
+
+  <rect x="48" y="154" width="1250" height="700" rx="28" fill="#efe9df" filter="url(#shadow)"/>
+  <image href="commercial-hero-v3.png" x="48" y="154" width="1250" height="700" preserveAspectRatio="xMidYMid slice" clip-path="url(#hero)"/>
+  <rect x="48" y="154" width="1250" height="700" rx="28" fill="url(#fade)"/>
+  <rect x="82" y="742" width="154" height="36" rx="18" class="coral"/><text x="159" y="767" text-anchor="middle" class="t small" font-weight="700">PRODUCT INTENT</text>
+  <text x="82" y="810" class="t h2">把桌面宠物、实体番茄钟与软件奖励系统放进同一个物理入口</text>
+  <text x="82" y="839" class="t small">翻转即选时长｜正面始终显示宠物｜BLE 同步桌面端｜断连后设备仍可独立计时</text>
+
+  <rect x="1330" y="154" width="542" height="700" rx="28" class="card" filter="url(#shadow)"/>
+  <text x="1362" y="201" class="t h2">量产规格基线</text><line x1="1362" y1="220" x2="1840" y2="220" class="line" opacity=".45"/>
+  <text x="1362" y="260" class="label">目标外形</text><text x="1835" y="262" text-anchor="end" class="t h2">70 × 70 × 70 mm</text>
+  <text x="1362" y="314" class="label">显示系统</text><text x="1835" y="316" text-anchor="end" class="t body">1.54″ IPS · 240×240 · ST7789</text>
+  <text x="1362" y="368" class="label">核心主控</text><text x="1835" y="370" text-anchor="end" class="t body">ESP32-C3-MINI-1 · BLE</text>
+  <text x="1362" y="422" class="label">朝向识别</text><text x="1835" y="424" text-anchor="end" class="t body">LIS2DH12 · 3-axis</text>
+  <text x="1362" y="476" class="label">供电方案</text><text x="1835" y="478" text-anchor="end" class="t body">1000 mAh Li-Po · USB-C 5V</text>
+  <text x="1362" y="530" class="label">声音系统</text><text x="1835" y="532" text-anchor="end" class="t body">20×30 mm · 8Ω / 1W</text>
+  <text x="1362" y="584" class="label">外壳与视窗</text><text x="1835" y="586" text-anchor="end" class="t body">ABS 主壳 · 黑色 PC 视窗</text>
+  <text x="1362" y="638" class="label">交互时长</text><text x="1835" y="640" text-anchor="end" class="t body">15 / 25 / 30 / 60 min</text>
+  <rect x="1362" y="685" width="478" height="132" rx="18" fill="#0b202a" stroke="#f48670" stroke-width="2"/>
+  <text x="1388" y="722" class="t small">5000 台量产目标</text><text x="1388" y="776" class="t num">¥75–92</text><text x="1812" y="776" text-anchor="end" class="t body">/ 台变量制造成本</text>
+  <text x="1388" y="804" class="t tiny muted">不是正式报价；需 RFQ、试产良率与认证结论共同冻结</text>
+
+  <text x="48" y="914" class="t h2">四个核心体验原则</text>
+  <rect x="48" y="940" width="438" height="202" rx="22" class="card"/>
+  <circle cx="92" cy="986" r="22" class="coral"/><text x="92" y="993" text-anchor="middle" class="t body" font-weight="700">1</text>
+  <text x="128" y="994" class="t h2">翻转即开始</text><text x="78" y="1034" class="t body">某时长面朝上并稳定 600–800 ms 后启动，</text><text x="78" y="1064" class="t body">抬起、搬动或快速旋转不应误触发。</text><text x="78" y="1102" class="k small">传感器只判断姿态，不需要昂贵六轴 IMU</text>
+  <rect x="508" y="940" width="438" height="202" rx="22" class="card"/>
+  <circle cx="552" cy="986" r="22" class="coral"/><text x="552" y="993" text-anchor="middle" class="t body" font-weight="700">2</text>
+  <text x="588" y="994" class="t h2">宠物一直在场</text><text x="538" y="1034" class="t body">正面显示当前软件宠物、状态、成长和奖励，</text><text x="538" y="1064" class="t body">计时期间使用低帧率动画控制功耗。</text><text x="538" y="1102" class="k small">设备保存基础动画；复杂资源仍由软件管理</text>
+  <rect x="968" y="940" width="438" height="202" rx="22" class="card"/>
+  <circle cx="1012" cy="986" r="22" class="coral"/><text x="1012" y="993" text-anchor="middle" class="t body" font-weight="700">3</text>
+  <text x="1048" y="994" class="t h2">断开也能计时</text><text x="998" y="1034" class="t body">电脑休眠或 BLE 断开时，本地 RTC/软件时基</text><text x="998" y="1064" class="t body">继续运行；重连后同步剩余时间和结果。</text><text x="998" y="1102" class="k small">软件端不能成为计时是否成功的单点故障</text>
+  <rect x="1428" y="940" width="444" height="202" rx="22" class="card"/>
+  <circle cx="1472" cy="986" r="22" class="coral"/><text x="1472" y="993" text-anchor="middle" class="t body" font-weight="700">4</text>
+  <text x="1508" y="994" class="t h2">奖励闭环</text><text x="1458" y="1034" class="t body">完成时间推动宠物成长；完成任务获得礼物；</text><text x="1458" y="1064" class="t body">提前结束触发宠物反应与垃圾收藏。</text><text x="1458" y="1102" class="k small">实体端只发事件，经济与存档由软件端结算</text>
+  <text x="48" y="1180" class="t tiny muted">外观图为 AI 辅助效果表现；尺寸、型号、成本和行为定义以本项目工程资料为准。</text>
+</svg>

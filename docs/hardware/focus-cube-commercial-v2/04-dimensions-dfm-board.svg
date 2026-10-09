@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081d2a"/><stop offset="1" stop-color="#123548"/></linearGradient>
+    <pattern id="g4" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#8cb8c7" stroke-opacity=".08"/></pattern>
+    <style>
+      .t{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;fill:#edf6f7}.m{fill:#a4b8bf}.h1{font-size:48px;font-weight:800}.h2{font-size:25px;font-weight:760}.body{font-size:18px}.small{font-size:15px}.tiny{font-size:13px}.panel{fill:#0f3041;stroke:#3b6575;stroke-width:2}.shell{fill:#ede4d5;stroke:#91a3a8;stroke-width:3}.screen{fill:#080b0e;stroke:#f28670;stroke-width:7}.dim{stroke:#73cee1;stroke-width:2;fill:none}.guide{stroke:#7b9eaa;stroke-width:1.5;stroke-dasharray:6 6}.call{fill:#163f51;stroke:#4f7b8b;stroke-width:1.5}.accent{fill:#f48670}.ok{fill:#65c6a1}.warn{fill:#efb55e}
+    </style>
+    <marker id="ar4" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8 0L0 4l8 4z" fill="#73cee1"/></marker>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#bg4)"/><rect width="1920" height="1200" fill="url(#g4)"/>
+  <text x="52" y="66" class="t small" letter-spacing="3">LUMPA · MECHANICAL BASELINE &amp; DFM / 04</text><text x="52" y="112" class="t h1">尺寸、材料、装配公差与验证要求</text>
+  <text x="1860" y="76" text-anchor="end" class="t h2">70 mm 平台｜可维修两片主壳</text><text x="1860" y="108" text-anchor="end" class="t small m">当前为结构包络基线，不是开模公差图</text>
+
+  <rect x="42" y="142" width="1020" height="610" rx="24" class="panel"/>
+  <text x="72" y="186" class="t h2">正视 / 侧视 / 后视</text>
+  <g transform="translate(92 245)">
+    <rect width="280" height="280" rx="48" class="shell"/><rect x="52" y="52" width="176" height="176" rx="32" class="screen"/><rect x="85" y="85" width="110.9" height="110.9" fill="#111" stroke="#5c747e"/>
+    <text x="140" y="145" text-anchor="middle" class="t small">LCD ACTIVE</text><text x="140" y="168" text-anchor="middle" class="t tiny">27.72 × 27.72</text>
+    <line x1="0" y1="330" x2="280" y2="330" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><line x1="0" y1="286" x2="0" y2="345" class="guide"/><line x1="280" y1="286" x2="280" y2="345" class="guide"/><text x="140" y="322" text-anchor="middle" class="t h2">70</text>
+    <line x1="-40" y1="0" x2="-40" y2="280" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><line x1="-40" y1="0" x2="0" y2="0" class="guide"/><line x1="-40" y1="280" x2="0" y2="280" class="guide"/><text x="-55" y="145" text-anchor="middle" class="t h2" transform="rotate(-90 -55 145)">70</text>
+    <text x="140" y="380" text-anchor="middle" class="t body">FRONT｜黑色 PC 视窗 44 × 44</text>
+  </g>
+  <g transform="translate(430 245)">
+    <rect width="280" height="280" rx="48" class="shell"/><path d="M80 82q60-38 120 0M80 198q60 38 120 0" class="guide" fill="none"/><text x="140" y="164" text-anchor="middle" fill="#8c8076" font-family="Arial" font-size="80" font-weight="700">15</text>
+    <text x="140" y="380" text-anchor="middle" class="t body">SIDE｜时长标识丝印/镭雕二选一</text>
+  </g>
+  <g transform="translate(768 245)">
+    <rect width="280" height="280" rx="48" class="shell"/><rect x="103" y="124" width="74" height="32" rx="14" fill="#111"/><rect x="116" y="132" width="48" height="16" rx="8" fill="#cad5d8"/><circle cx="55" cy="235" r="7" fill="#82959b"/><g fill="#82959b"><circle cx="225" cy="215" r="5"/><circle cx="241" cy="215" r="5"/><circle cx="225" cy="231" r="5"/><circle cx="241" cy="231" r="5"/></g>
+    <text x="140" y="380" text-anchor="middle" class="t body">BACK｜USB-C + 隐藏声孔 + 复位孔</text>
+  </g>
+
+  <rect x="1090" y="142" width="788" height="610" rx="24" class="panel"/>
+  <text x="1120" y="186" class="t h2">侧剖面堆叠与关键禁区</text>
+  <rect x="1160" y="265" width="640" height="280" rx="50" class="shell"/>
+  <rect x="1178" y="300" width="13" height="210" rx="5" fill="#111"/><rect x="1205" y="325" width="20" height="160" fill="#b9c5ca"/><rect x="1245" y="307" width="22" height="196" fill="#3d8b65"/>
+  <rect x="1300" y="328" width="250" height="154" rx="12" fill="#bcc5cb" stroke="#4d5f67" stroke-width="2"/><rect x="1595" y="340" width="34" height="130" rx="7" fill="#222b31"/>
+  <rect x="1240" y="265" width="165" height="68" rx="8" fill="#f6d96f" fill-opacity=".25" stroke="#f5d96f" stroke-dasharray="7 5"/>
+  <text x="1322" y="292" text-anchor="middle" class="t small">RF 天线净空</text>
+  <line x1="1191" y1="600" x2="1205" y2="600" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><text x="1198" y="630" text-anchor="middle" class="t tiny">视窗</text>
+  <line x1="1205" y1="600" x2="1225" y2="600" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><text x="1215" y="650" text-anchor="middle" class="t tiny">LCD</text>
+  <line x1="1245" y1="600" x2="1267" y2="600" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><text x="1256" y="630" text-anchor="middle" class="t tiny">PCB</text>
+  <line x1="1300" y1="600" x2="1550" y2="600" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><text x="1425" y="630" text-anchor="middle" class="t small">电池占位约 50 × 30 × 6</text>
+  <line x1="1595" y1="600" x2="1629" y2="600" class="dim" marker-start="url(#ar4)" marker-end="url(#ar4)"/><text x="1612" y="630" text-anchor="middle" class="t tiny">扬声器</text>
+  <rect x="1125" y="675" width="718" height="46" rx="14" class="call"/><text x="1145" y="704" class="t small">约束：天线前方不放电池/扬声器磁体/金属喷涂｜USB 插拔力不得传给 PCB 焊点｜LCD 不承受壳体锁紧力</text>
+
+  <rect x="42" y="780" width="585" height="350" rx="24" class="panel"/>
+  <text x="72" y="824" class="t h2">CMF 与材料建议</text>
+  <circle cx="94" cy="875" r="18" fill="#eee4d5" stroke="#fff"/><text x="128" y="882" class="t body">主壳｜ABS V0 建议，暖米白细砂纹</text><text x="128" y="909" class="m small">壁厚 1.8–2.0 mm；纹理等级在模厂确认</text>
+  <circle cx="94" cy="957" r="18" fill="#090c0e" stroke="#7d9299"/><text x="128" y="964" class="t body">前窗｜烟熏黑 PC，背面遮光丝印</text><text x="128" y="991" class="m small">正面关闭时保持“一体黑”；不得露出 LCD 边框</text>
+  <circle cx="94" cy="1039" r="18" class="accent"/><text x="128" y="1046" class="t body">装饰圈｜珊瑚色 PC-ABS / 喷涂备选</text><text x="128" y="1073" class="m small">若独立注塑导致模具超预算，可改为壳体局部喷涂</text>
+  <circle cx="94" cy="1112" r="18" fill="#d76f59"/><text x="128" y="1119" class="t body">脚垫｜硅胶 Shore A 45–55</text>
+
+  <rect x="652" y="780" width="600" height="350" rx="24" class="panel"/>
+  <text x="682" y="824" class="t h2">结构 DFM 必做项</text>
+  <g class="t body"><circle cx="698" cy="870" r="8" class="ok"/><text x="718" y="877">外观面拔模角 ≥1.0°，细纹面建议 ≥1.5°</text><circle cx="698" cy="916" r="8" class="ok"/><text x="718" y="923">加强筋厚度控制在相邻壁厚的 0.5–0.6 倍</text><circle cx="698" cy="962" r="8" class="ok"/><text x="718" y="969">螺柱与壳体之间加三角筋，避免跌落开裂</text><circle cx="698" cy="1008" r="8" class="ok"/><text x="718" y="1015">前后壳分型线避开正面高光和数字中心</text><circle cx="698" cy="1054" r="8" class="ok"/><text x="718" y="1061">电池使用绝缘片、缓冲泡棉及可维修拉拔胶</text><circle cx="698" cy="1100" r="8" class="ok"/><text x="718" y="1107">预留模具修钢方向；首轮不做不可逆焊接</text></g>
+
+  <rect x="1277" y="780" width="601" height="350" rx="24" class="panel"/>
+  <text x="1307" y="824" class="t h2">DVT 验证矩阵｜通过后才可开量产</text>
+  <g class="t body"><circle cx="1323" cy="870" r="8" class="warn"/><text x="1343" y="877">1.0 m 六面跌落，功能和电池不得异常</text><circle cx="1323" cy="916" r="8" class="warn"/><text x="1343" y="923">USB-C 插拔与侧向受力，接口不得松脱</text><circle cx="1323" cy="962" r="8" class="warn"/><text x="1343" y="969">满电持续显示 + 发声的极限温升测试</text><circle cx="1323" cy="1008" r="8" class="warn"/><text x="1343" y="1015">ESD 预扫、BLE 距离、天线方向性复测</text><circle cx="1323" cy="1054" r="8" class="warn"/><text x="1343" y="1061">5000 次翻转识别与误触发统计</text><circle cx="1323" cy="1100" r="8" class="warn"/><text x="1343" y="1107">包装振动、运输后外观与电池安全检查</text></g>
+  <text x="42" y="1180" class="t tiny m">未冻结项：最终电芯料号、扬声器声腔、LCD FPC 方向、螺钉规格、壳体缩水率、GD&amp;T、公差链与认证样机配置。</text>
+</svg>
