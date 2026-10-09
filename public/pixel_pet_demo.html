@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D 像素桌面宠物 - 真实逐帧动作与游戏操控 Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #14151a;
+      color: #e4e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* 顶部控制栏 */
+    header.top-bar {
+      height: 54px;
+      background: #1e2028;
+      border-bottom: 2px solid #2f3240;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 20;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      font-size: 15px;
+      color: #ffb74d;
+    }
+    .brand-icon {
+      font-size: 20px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tool-label {
+      font-size: 13px;
+      color: #9aa0a6;
+    }
+    select, button, input[type="range"] {
+      background: #2b2e3b;
+      color: #fff;
+      border: 1px solid #414557;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    select:hover, button:hover {
+      background: #383c4d;
+      border-color: #ffb74d;
+    }
+    button.active {
+      background: #ffb74d;
+      color: #1a1a1a;
+      font-weight: bold;
+      border-color: #ffa726;
+    }
+
+    /* 主画布区域 */
+    main.stage-wrapper {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at 50% 30%, #262835 0%, #111217 100%);
+      overflow: hidden;
+    }
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* 游戏键位操作提示 HUD */
+    .hud-controls-card {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      background: rgba(22, 24, 32, 0.88);
+      border: 1px solid #3d4153;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #cfd4dc;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .hud-controls-card b {
+      color: #ffca28;
+    }
+    .key-badge {
+      display: inline-block;
+      background: #333748;
+      border: 1px solid #4f546b;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: monospace;
+      font-weight: bold;
+      color: #fff;
+      margin: 0 2px;
+    }
+
+    /* 状态与动作 HUD */
+    .pet-hud-status {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: rgba(22, 24, 32, 0.88);
+      border: 1px solid #3d4153;
+      border-radius: 8px;
+      padding: 10px 18px;
+      text-align: right;
+      font-size: 12px;
+      backdrop-filter: blur(6px);
+    }
+    .pet-hud-status .action-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #81c784;
+      margin-bottom: 2px;
+    }
+
+    /* 底部动作控制条 */
+    footer.action-board {
+      height: 64px;
+      background: #1a1c23;
+      border-top: 2px solid #2f3240;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px;
+      z-index: 20;
+    }
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #262936;
+      color: #e0e4e8;
+      border: 1px solid #393d4f;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      border-color: #ffb74d;
+      color: #ffb74d;
+    }
+
+    .laser-cursor {
+      cursor: crosshair !important;
+    }
+
+    /* 右键动作交互菜单 (精准还原用户参考图 media_1788575768915.jpg) */
+    .pet-context-menu {
+      position: absolute;
+      z-index: 999;
+      width: 154px;
+      background: rgba(30, 33, 44, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      padding: 6px 4px;
+      user-select: none;
+      font-size: 13px;
+      color: #f0f2f5;
+      max-height: 460px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+      animation: menuPop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes menuPop {
+      0% { opacity: 0; transform: scale(0.92); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .pet-context-menu::-webkit-scrollbar {
+      width: 4px;
+    }
+    .pet-context-menu::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    .pet-context-menu.hidden {
+      display: none !important;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6.5px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      font-weight: 500;
+      color: #e2e8f0;
+      font-size: 12.5px;
+    }
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffb74d;
+      transform: translateX(2px);
+    }
+    .menu-item.danger:hover {
+      background: rgba(244, 67, 54, 0.25);
+      color: #ff8a80;
+    }
+    .menu-icon {
+      font-size: 14px;
+      width: 18px;
+      text-align: center;
+      display: inline-block;
+    }
+
+    /* 饱食度与水分状态顶条 (置于宠物正上方) */
+    .pet-vitals-hud {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      background: rgba(248, 244, 236, 0.94);
+      border: 1px solid rgba(210, 190, 170, 0.85);
+      border-radius: 14px;
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 800;
+    }
+    .pet-vitals-hud.hidden {
+      display: none !important;
+    }
+    .vitals-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .vitals-icon {
+      font-size: 12px;
+    }
+    .vitals-track {
+      width: 42px;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.18);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .vitals-fill-food {
+      height: 100%;
+      width: 88%;
+      background: linear-gradient(90deg, #4caf50, #81c784);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .vitals-fill-water {
+      height: 100%;
+      width: 82%;
+      background: linear-gradient(90deg, #29b6f6, #4fc3f7);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-icon">🐱</span>
+      <span>2D 像素宠物 - 真实逐帧动画与游戏操控沙盒</span>
+    </div>
+
+    <div class="toolbar-group">
+      <span class="tool-label">萌宠专属模型:</span>
+      <select id="skinSelect">
+        <option value="cat_white">🤍 纯白棉棉 (白猫粉耳)</option>
+        <option value="cat_ginger">🧡 腮红小橘 (大橘为重)</option>
+        <option value="cat_calico">🤎 方萌三花 (三色花斑)</option>
+        <option value="cat_black">🖤 大眼玄猫 (红盆阿夜)</option>
+        <option value="cat_siamese">💚 碧眼暹罗 (优雅面具)</option>
+        <option value="fox_fire">🦊 赤狐星火 (蓬松火尾)</option>
+        <option value="wolf_cub">🐺 灰白幼狼 (直立尖耳)</option>
+      </select>
+
+      <span class="tool-label" style="margin-left: 6px;">场景物品:</span>
+      <div style="display: flex; gap: 4px;" id="sceneBtnGroup">
+        <button class="scene-btn active" data-scene="desk" type="button">🖥️ 工位小书桌</button>
+        <button class="scene-btn" data-scene="cattree" type="button">🌳 猫爬架台子</button>
+        <button class="scene-btn" data-scene="bed" type="button">🛏️ 温馨猫窝</button>
+        <button class="scene-btn" data-scene="clean" type="button">🍃 极简纯净</button>
+      </div>
+
+      <span class="tool-label" style="margin-left: 6px;">放大:</span>
+      <input type="range" id="scaleSlider" min="0.8" max="2.5" step="0.1" value="1.5" style="width: 70px;">
+      <span id="scaleVal" style="font-size: 12px; color: #ffb74d; width: 28px;">1.5x</span>
+
+      <button id="laserBtn" type="button">🔴 激光追逐</button>
+      <button id="toyBtn" type="button">🧶 毛线球</button>
+      <button id="treatBtn" type="button">🐟 喂鱼干</button>
+      <button id="autoAiBtn" type="button" class="active">🤖 自主: 开</button>
+    </div>
+  </header>
+
+  <main class="stage-wrapper" id="stageWrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 饱食与水分状态条 (参考抖音电子宠物原型) -->
+    <div class="pet-vitals-hud" id="petVitalsHud">
+      <div class="vitals-bar-wrap">
+        <span class="vitals-icon">🥖</span>
+        <div class="vitals-track"><div class="vitals-fill-food" id="vitalsFoodFill"></div></div>
+      </div>
+      <div class="vitals-bar-wrap">
+        <span class="vitals-icon">💧</span>
+        <div class="vitals-track"><div class="vitals-fill-water" id="vitalsWaterFill"></div></div>
+      </div>
+    </div>
+
+    <!-- 鼠标右键动作交互菜单 (精准复刻 media_1788575768915.jpg) -->
+    <div class="pet-context-menu hidden" id="petContextMenu">
+      <div class="menu-item" data-action="blink"><span class="menu-icon">🐱</span>眨眼</div>
+      <div class="menu-item" data-action="tilt"><span class="menu-icon">🐾</span>歪头</div>
+      <div class="menu-item" data-action="roll"><span class="menu-icon">🤸</span>打滚</div>
+      <div class="menu-item" data-action="look"><span class="menu-icon">🦉</span>张望</div>
+      <div class="menu-item" data-action="yawn"><span class="menu-icon">🥱</span>打哈欠</div>
+      <div class="menu-item" data-action="love"><span class="menu-icon">⚡</span>爱你</div>
+      <div class="menu-item" data-action="stretch"><span class="menu-icon">🦁</span>伸懒腰</div>
+      <div class="menu-item" data-action="shake"><span class="menu-icon">🔵</span>甩头</div>
+      <div class="menu-item" data-action="hiss"><span class="menu-icon">😼</span>哈气</div>
+      <div class="menu-item" data-action="eat"><span class="menu-icon">🥣</span>吃饭</div>
+      <div class="menu-item" data-action="drink"><span class="menu-icon">🥛</span>喝水</div>
+      <div class="menu-item" data-action="loaf"><span class="menu-icon">🧎</span>摆烂</div>
+      <div class="menu-item" data-action="sleep"><span class="menu-icon">💤</span>睡觉</div>
+      <div class="menu-item" data-action="deepsleep"><span class="menu-icon">💤</span>持续睡觉</div>
+      <div class="menu-item" data-action="wake"><span class="menu-icon">🌅</span>睡醒</div>
+      <div class="menu-item" data-action="feedfish"><span class="menu-icon">🍪</span>喂小鱼干</div>
+      <div class="menu-item" data-action="feedwater"><span class="menu-icon">🥛</span>喂水</div>
+      <div class="menu-item" data-action="walk"><span class="menu-icon">🚶</span>漫步</div>
+      <div class="menu-item" data-action="run"><span class="menu-icon">🏃</span>冲刺跑</div>
+      <div class="menu-item" data-action="jump"><span class="menu-icon">🐾</span>蓄力轻跃</div>
+      <div class="menu-item danger" data-action="close"><span class="menu-icon">❌</span>退出</div>
+    </div>
+
+    <div class="hud-controls-card">
+      🎮 <b>游戏级键盘操控 (可直接键盘操控走动)</b><br>
+      • <span class="key-badge">A</span> / <span class="key-badge">D</span> 或 <span class="key-badge">←</span> / <span class="key-badge">→</span>：<b>自由走步漫步</b> (真实四足迈步动画)<br>
+      • 按住 <span class="key-badge">Shift</span> + 方向键：<b>急速冲刺奔跑</b> (真实腾空大跨步动画)<br>
+      • <span class="key-badge">空格</span> 或 <span class="key-badge">W</span> / <span class="key-badge">↑</span>：<b>跳跃起跳</b> (蓄力下压后平滑起跳，落地肉垫缓冲)<br>
+      • <span class="key-badge">S</span> / <span class="key-badge">↓</span>：<b>揣手手趴卧</b> (爪子收在胸腹下)<br>
+      • <span class="key-badge">E</span>：<b>猫式大伸展</b> | <span class="key-badge">Z</span>：<b>抱尾巴打瞌睡</b><br>
+      • <b>鼠标右键点击</b>：弹出专属动作与互动菜单（如眨眼、歪头、伸懒腰、喂食等）！<br>
+      • 鼠标点击屏幕任意位置，小猫欢快跑过去！按住小猫可直接拎起！
+    </div>
+
+    <div class="pet-hud-status">
+      <div class="action-name" id="statusAction">待机 (Idle)</div>
+      <div style="color: #9aa0a6;" id="statusCoord">位置: 地面 | 帧率: 60FPS</div>
+    </div>
+  </main>
+
+  <footer class="action-board">
+    <button class="action-btn" onclick="manualTrigger('walk')">🚶 逐帧行走</button>
+    <button class="action-btn" onclick="manualTrigger('run')">🏃 逐帧奔跑</button>
+    <button class="action-btn" onclick="manualTrigger('jump')">🐾 抛物线跳跃</button>
+    <button class="action-btn" onclick="manualTrigger('stretch')">🧘 猫式大伸展</button>
+    <button class="action-btn" onclick="manualTrigger('loaf')">🍞 揣手手趴卧</button>
+    <button class="action-btn" onclick="manualTrigger('sleep')">💤 甜甜圈甜睡</button>
+    <button class="action-btn" onclick="manualTrigger('meow')">💬 撒娇喵叫</button>
+  </footer>
+
+  <script>
+    // -------------------------------------------------------------
+    // 1. 各动物独立专属逐帧动作图库加载器 (All 7 Archetypes Bespoke Loader)
+    // -------------------------------------------------------------
+    const FRAME_NAMES = [
+      'idle',
+      'walk_0', 'walk_1', 'walk_2', 'walk_3',
+      'run_0', 'run_1', 'run_2', 'run_3',
+      'jump', 'stretch', 'loaf', 'sleep'
+    ];
+
+    const ALL_ARCHETYPES = [
+      'cat_white',
+      'cat_ginger',
+      'cat_calico',
+      'cat_black',
+      'cat_siamese',
+      'fox_fire',
+      'wolf_cub'
+    ];
+
+    const spriteCache = {};
+    let currentSkin = 'cat_white';
+
+    function getSpritePath(name, archetype = currentSkin) {
+      return `assets/pet_frames/${archetype}/${name}.png`;
+    }
+
+    function preloadAllSprites() {
+      ALL_ARCHETYPES.forEach(arch => {
+        spriteCache[arch] = {};
+        FRAME_NAMES.forEach(f => {
+          const img = new Image();
+          img.onerror = () => {
+            if (!img.src.includes('/public/')) {
+              img.src = `public/assets/pet_frames/${arch}/${f}.png`;
+            }
+          };
+          img.src = getSpritePath(f, arch);
+          spriteCache[arch][f] = img;
+        });
+      });
+    }
+    preloadAllSprites();
+
+    // -------------------------------------------------------------
+    // 2. 模块化场景家具切换系统 (Desk, CatTree, Bed, Clean)
+    // -------------------------------------------------------------
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    let viewW = 0, viewH = 0;
+    let platforms = [];
+    let currentScene = 'desk'; // 'desk' | 'cattree' | 'bed' | 'clean'
+
+    function setScene(sceneName) {
+      currentScene = sceneName;
+      document.querySelectorAll(".scene-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.scene === sceneName);
+      });
+      updatePlatforms();
+
+      const titles = {
+        desk: "工位小书桌 🖥️",
+        cattree: "猫爬架台子 🌳",
+        bed: "温馨猫窝地毯 🛏️",
+        clean: "极简纯净桌面 🍃"
+      };
+      if (window.pet) {
+        pet.say(`场景已切换为：${titles[sceneName] || sceneName}`, 90);
+      }
+    }
+
+    function updatePlatforms() {
+      const floorY = viewH - 55;
+      platforms = [
+        { id: "floor", x: 0, y: floorY, w: viewW, h: 55, isFloor: true, name: "地面" }
+      ];
+
+      if (currentScene === 'desk') {
+        platforms.push({
+          id: "desk",
+          x: viewW * 0.30,
+          y: floorY - 95,
+          w: 240,
+          h: 18,
+          name: "工位小书桌"
+        });
+      } else if (currentScene === 'cattree') {
+        platforms.push({
+          id: "cattree_low",
+          x: viewW * 0.44,
+          y: floorY - 65,
+          w: 110,
+          h: 14,
+          name: "猫爬架跳板"
+        });
+        platforms.push({
+          id: "cattree_high",
+          x: viewW * 0.38,
+          y: floorY - 145,
+          w: 130,
+          h: 16,
+          name: "猫爬架瞭望台"
+        });
+      }
+
+      // 如果宠物原本站在被切掉的家具上，让其自然受重力下落
+      if (window.pet && pet.currentPlatform && pet.currentPlatform.id !== 'floor') {
+        const stillExists = platforms.some(p => p.id === pet.currentPlatform.id);
+        if (!stillExists) {
+          pet.currentPlatform = null;
+          pet.setAction('jump', 60);
+        }
+      }
+    }
+
+    function resizeCanvas() {
+      viewW = canvas.parentElement.clientWidth;
+      viewH = canvas.parentElement.clientHeight;
+      canvas.width = viewW;
+      canvas.height = viewH;
+      ctx.imageSmoothingEnabled = false;
+      updatePlatforms();
+    }
+    window.addEventListener("resize", resizeCanvas);
+
+    // -------------------------------------------------------------
+    // 3. 粒子系统 (爱心、跑动扬尘、Zzz)
+    // -------------------------------------------------------------
+    const particles = [];
+    function spawnHearts(x, y) {
+      for (let i = 0; i < 6; i++) {
+        particles.push({
+          type: "heart",
+          x: x + (Math.random() - 0.5) * 30,
+          y: y - 30 + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: -1.2 - Math.random() * 1.5,
+          life: 1.0,
+          size: 10 + Math.random() * 4
+        });
+      }
+    }
+    function spawnDust(x, y) {
+      for (let i = 0; i < 3; i++) {
+        particles.push({
+          type: "dust",
+          x: x + (Math.random() - 0.5) * 16,
+          y: y - 2,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: -0.5 - Math.random() * 0.6,
+          life: 0.8,
+          size: 3 + Math.random() * 3
+        });
+      }
+    }
+    function spawnZzz(x, y) {
+      if (Math.random() < 0.04) {
+        particles.push({
+          type: "zzz",
+          x: x + 20,
+          y: y - 35,
+          vx: 0.3 + Math.random() * 0.3,
+          vy: -0.7 - Math.random() * 0.4,
+          life: 1.0,
+          size: 12
+        });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 4. 玩具系统 (激光点、毛线球、鱼干)
+    // -------------------------------------------------------------
+    let laserActive = false;
+    let laserPos = { x: -100, y: -100 };
+    let yarnBall = null;
+    let fishTreat = null;
+
+    // -------------------------------------------------------------
+    // 5. 键盘输入管理器 (Game Controller Input)
+    // -------------------------------------------------------------
+    const keys = {};
+    window.addEventListener("keydown", (e) => {
+      keys[e.key.toLowerCase()] = true;
+      keys[e.code] = true;
+      // 避免方向键与空格滚动页面
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+        e.preventDefault();
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      keys[e.key.toLowerCase()] = false;
+      keys[e.code] = false;
+    });
+
+    // -------------------------------------------------------------
+    // 6. 核心猫咪实体类 (逐帧平滑衔接、蓄力起跳与落地缓冲、底部固定巡游)
+    // -------------------------------------------------------------
+    class GameCat {
+      constructor() {
+        this.x = 220;
+        this.y = 400;
+        this.vx = 0;
+        this.vy = 0;
+        this.targetVx = 0;
+        this.facing = 1; // 1: 右, -1: 左
+        this.renderFacingScale = 1; // 转体透视插值 (3D-like organic turning)
+        this.currentPlatform = null;
+        this.scale = 1.5;
+
+        // 状态: 'idle', 'walk', 'run', 'jump', 'stretch', 'loaf', 'sleep', 'dangle'
+        this.action = 'idle';
+        this.actionTime = 0;
+        this.stateDuration = 180;
+
+        // 用户主动/菜单指令锁定计时器 (手动动作演绎期间绝不被巡游程序打断覆盖)
+        this.manualActionLock = 0;
+
+        // 逐帧定格动画播放计时器
+        this.animFrameIndex = 0;
+        this.frameTimer = 0;
+
+        // 起跳蓄力与落地缓冲状态机 (Squash Anticipation & Cushion Engine)
+        this.jumpPhase = 'none'; // 'none' | 'anticipate' | 'flight' | 'cushion'
+        this.anticipateTimer = 0;
+        this.cushionTimer = 0;
+        this.pendingJumpVy = -6.8;
+        this.pendingJumpVx = 0;
+        this.landingProgress = 0;
+
+        // 姿态平滑展开
+        this.unfoldTimer = 0;
+
+        // 专属微动作计时器 (复刻参考原型截图)
+        this.blinkTimer = 0;
+        this.tiltTimer = 0;
+        this.rollTimer = 0;
+        this.lookTimer = 0;
+        this.yawnTimer = 0;
+        this.shakeTimer = 0;
+        this.hissTimer = 0;
+        this.deepSleep = false;
+
+        // 饱食度与口渴度
+        this.hunger = 88;
+        this.thirst = 82;
+
+        // 底部导航栏固定程序巡游状态机 (Taskbar Fixed Loop Routine)
+        this.patrolStep = 0; // 0: 漫步, 1: 停步张望/歪头, 2: 蓄力轻跃, 3: 转向漫步, 4: 揣手摆烂, 5: 伸展醒来
+        this.patrolTimer = 0;
+        this.patrolDir = 1;
+
+        this.speechBubble = "";
+        this.speechTimer = 0;
+        this.isDangling = false;
+        this.targetX = null; // 鼠标点击移动寻路目标
+      }
+
+      say(text, duration = 120) {
+        this.speechBubble = text;
+        this.speechTimer = duration;
+      }
+
+      setAction(act, duration = 200) {
+        if (this.action !== act) {
+          this.action = act;
+          this.actionTime = 0;
+          this.animFrameIndex = 0;
+          this.frameTimer = 0;
+          this.stateDuration = duration;
+          updateStatusHud(this.action);
+        }
+      }
+
+      // 起跳蓄力触发器 (杜绝从坐立瞬间飞起，强制先下压蓄力再离地)
+      triggerJump(powerVy = -7.2, vx = null) {
+        if (this.jumpPhase === 'anticipate' || this.jumpPhase === 'flight') return;
+        if (!this.currentPlatform && this.y < platforms[0].y - 6) return;
+
+        // 若当前在揣手(loaf)或睡觉(sleep)，先站起平滑展开
+        if (this.action === 'loaf' || this.action === 'sleep') {
+          this.setAction('idle', 60);
+          this.unfoldTimer = 5;
+          window.setTimeout(() => {
+            this.startAnticipateJump(powerVy, vx);
+          }, 80);
+          return;
+        }
+
+        this.startAnticipateJump(powerVy, vx);
+      }
+
+      startAnticipateJump(powerVy = -7.2, vx = null) {
+        this.jumpPhase = 'anticipate';
+        this.anticipateTimer = 7; // 蓄力下压蹲姿 ~110ms
+        this.pendingJumpVy = powerVy;
+        this.pendingJumpVx = vx !== null ? vx : (this.vx !== 0 ? this.vx * 0.9 : this.facing * 1.6);
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('idle', 60);
+      }
+
+      // 菜单动作交互方法 (均带有锁定保护，100%响应不被冲掉)
+      triggerBlink() {
+        this.manualActionLock = 90;
+        this.targetVx = 0;
+        this.blinkTimer = 40;
+        this.say("眨巴眨巴大眼睛～✨", 90);
+        playCatSound('meow');
+      }
+      triggerTilt() {
+        this.manualActionLock = 110;
+        this.targetVx = 0;
+        this.tiltTimer = 65;
+        this.say("歪头好奇打量着你～❓", 100);
+        playCatSound('meow');
+      }
+      triggerRoll() {
+        this.manualActionLock = 140;
+        this.targetVx = 0;
+        this.rollTimer = 80;
+        this.say("四脚朝天抱着小球翻滚打逗～🧶", 110);
+        spawnHearts(this.x, this.y);
+      }
+      triggerLook() {
+        this.manualActionLock = 110;
+        this.targetVx = 0;
+        this.lookTimer = 65;
+        this.say("竖起小尖耳好奇张望周围👀", 90);
+      }
+      triggerYawn() {
+        this.manualActionLock = 130;
+        this.targetVx = 0;
+        this.yawnTimer = 65;
+        this.setAction('loaf', 130);
+        this.say("哈欠～打了个超软萌的大哈欠🥱", 100);
+        spawnZzz(this.x, this.y);
+      }
+      triggerLove() {
+        this.manualActionLock = 120;
+        this.targetVx = 0;
+        spawnHearts(this.x, this.y);
+        this.say("最喜欢主人啦！蹭蹭手心💖", 100);
+        playCatSound('meow');
+      }
+      triggerStretch() {
+        this.manualActionLock = 160;
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('stretch', 160);
+        this.say("前爪伏地·猫式大伸展～🦁", 110);
+      }
+      triggerShake() {
+        this.manualActionLock = 90;
+        this.targetVx = 0;
+        this.shakeTimer = 45;
+        this.say("甩了甩毛茸茸的小脑袋🔵", 90);
+      }
+      triggerHiss() {
+        this.manualActionLock = 110;
+        this.targetVx = 0;
+        this.hissTimer = 55;
+        this.setAction('loaf', 110);
+        this.say("超凶哈气！(其实是撒娇啦)😼", 90);
+      }
+      triggerEat() {
+        this.manualActionLock = 150;
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('loaf', 150);
+        this.hunger = Math.min(100, this.hunger + 25);
+        updateVitalsDisplay();
+        this.say("大口干饭，香喷喷！🥣", 110);
+        spawnHearts(this.x, this.y);
+      }
+      triggerDrink() {
+        this.manualActionLock = 150;
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('loaf', 150);
+        this.thirst = Math.min(100, this.thirst + 25);
+        updateVitalsDisplay();
+        this.say("吨吨吨喝清凉甘泉水～🥛", 110);
+        spawnHearts(this.x, this.y);
+      }
+      triggerLoaf() {
+        this.manualActionLock = 220;
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('loaf', 220);
+        this.say("爪爪收进胸下·开启惬意摆烂模式🧎", 120);
+      }
+      triggerSleep() {
+        this.manualActionLock = 300;
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('sleep', 300);
+        this.say("身体蜷成小甜甜圈·呼噜呼噜甜睡💤", 140);
+      }
+      triggerDeepSleep() {
+        this.targetVx = 0;
+        this.vx = 0;
+        this.deepSleep = true;
+        this.manualActionLock = 999999;
+        this.setAction('sleep', 999999);
+        this.say("进入深度持续安睡中……💤", 140);
+      }
+      triggerWake() {
+        this.deepSleep = false;
+        this.manualActionLock = 120;
+        this.targetVx = 0;
+        this.vx = 0;
+        this.setAction('stretch', 120);
+        this.say("伸伸懒腰揉揉眼，精神抖擞睡醒啦！🌅", 100);
+        spawnHearts(this.x, this.y);
+      }
+      feedFish() {
+        this.manualActionLock = 140;
+        this.targetVx = 0;
+        this.hunger = 100;
+        updateVitalsDisplay();
+        this.setAction('loaf', 140);
+        spawnHearts(this.x, this.y);
+        this.say("嗷呜一口吃掉香酥小鱼干！🐟", 110);
+        playCatSound('meow');
+      }
+      feedWater() {
+        this.manualActionLock = 140;
+        this.targetVx = 0;
+        this.thirst = 100;
+        updateVitalsDisplay();
+        this.setAction('loaf', 140);
+        spawnHearts(this.x, this.y);
+        this.say("吨吨吨喝饱饱！活力满满🥛", 110);
+      }
+
+      // 底部导航栏固定程序巡游循环 (Taskbar Patrol Routine)
+      updatePatrolRoutine() {
+        // 遇到边界自动折返
+        if (this.x < 70) {
+          this.patrolDir = 1;
+        } else if (this.x > viewW - 70) {
+          this.patrolDir = -1;
+        }
+
+        switch (this.patrolStep) {
+          case 0:
+            // 步骤 0: 悠闲漫步踱步 (~2.4 秒)
+            this.facing = this.patrolDir;
+            this.targetVx = this.patrolDir * 1.8;
+            this.setAction('walk', 160);
+            this.patrolTimer++;
+            if (this.patrolTimer >= 145) {
+              this.patrolStep = 1;
+              this.patrolTimer = 0;
+            }
+            break;
+
+          case 1:
+            // 步骤 1: 停步张望/歪头眨眼 (~1.3 秒)
+            this.targetVx = 0;
+            this.setAction('idle', 80);
+            this.patrolTimer++;
+            if (this.patrolTimer === 18) this.blinkTimer = 22;
+            if (this.patrolTimer === 42) this.tiltTimer = 28;
+            if (this.patrolTimer >= 75) {
+              this.patrolStep = 2;
+              this.patrolTimer = 0;
+            }
+            break;
+
+          case 2:
+            // 步骤 2: 原地蓄力下压后轻跃一个小抛物线 (Gentle Hop)
+            this.triggerJump(-5.2, this.patrolDir * 1.4);
+            this.patrolStep = 3;
+            this.patrolTimer = 0;
+            break;
+
+          case 3:
+            // 步骤 3: 落地着地缓冲后，折返漫步踱步 (~2.2 秒)
+            if (this.jumpPhase === 'none') {
+              this.patrolDir = -this.patrolDir;
+              this.facing = this.patrolDir;
+              this.targetVx = this.patrolDir * 1.8;
+              this.setAction('walk', 140);
+              this.patrolTimer++;
+              if (this.patrolTimer >= 135) {
+                this.patrolStep = 4;
+                this.patrolTimer = 0;
+              }
+            }
+            break;
+
+          case 4:
+            // 步骤 4: 揣手手趴卧摆烂 (~3.0 秒)
+            this.targetVx = 0;
+            this.setAction('loaf', 190);
+            this.patrolTimer++;
+            if (this.patrolTimer >= 180) {
+              this.patrolStep = 5;
+              this.patrolTimer = 0;
+            }
+            break;
+
+          case 5:
+            // 步骤 5: 醒来伸展筋骨 (猫式大伸展 ~1.5 秒)
+            this.targetVx = 0;
+            this.setAction('stretch', 100);
+            this.patrolTimer++;
+            if (this.patrolTimer >= 90) {
+              // 循环重置回步骤 0
+              this.patrolStep = 0;
+              this.patrolTimer = 0;
+            }
+            break;
+        }
+      }
+
+      update() {
+        this.actionTime++;
+        if (this.speechTimer > 0) this.speechTimer--;
+
+        // 倒计时专属微动作与主动动作锁
+        if (this.manualActionLock > 0) this.manualActionLock--;
+        if (this.blinkTimer > 0) this.blinkTimer--;
+        if (this.tiltTimer > 0) this.tiltTimer--;
+        if (this.rollTimer > 0) this.rollTimer--;
+        if (this.lookTimer > 0) this.lookTimer--;
+        if (this.yawnTimer > 0) this.yawnTimer--;
+        if (this.shakeTimer > 0) this.shakeTimer--;
+        if (this.hissTimer > 0) this.hissTimer--;
+        if (this.unfoldTimer > 0) this.unfoldTimer--;
+
+        // 平滑转体插值 (消除0帧瞬翻生硬感)
+        this.renderFacingScale += (this.facing - this.renderFacingScale) * 0.28;
+
+        // ---------------- 1. 玩家键盘直接操控 ----------------
+        const isLeft = keys['a'] || keys['arrowleft'];
+        const isRight = keys['d'] || keys['arrowright'];
+        const isRun = keys['shift'] || keys['shiftleft'] || keys['shiftright'];
+        const isJump = keys[' '] || keys['space'] || keys['w'] || keys['arrowup'];
+        const isLoaf = keys['s'] || keys['arrowdown'];
+        const isStretch = keys['e'];
+        const isSleep = keys['z'];
+
+        let manualInput = false;
+
+        if (this.isDangling) {
+          this.action = 'dangle';
+          return;
+        }
+
+        // 处理蓄力起跳阶段 (Anticipation Squash Phase - 低重心四足抓地蓄力)
+        if (this.jumpPhase === 'anticipate') {
+          this.anticipateTimer--;
+          this.targetVx = 0;
+          this.vx = 0;
+          this.vy = 0;
+          if (this.anticipateTimer <= 0) {
+            this.jumpPhase = 'flight';
+            this.vy = this.pendingJumpVy;
+            this.vx = this.pendingJumpVx;
+            this.targetVx = this.pendingJumpVx;
+            this.setAction('jump', 100);
+            spawnDust(this.x, this.y);
+            playCatSound('meow');
+          }
+          return;
+        }
+
+        // 处理着地缓冲阶段 (Landing Cushion Phase - 肉垫屈膝缓冲)
+        if (this.jumpPhase === 'cushion') {
+          this.cushionTimer--;
+          this.landingProgress = this.cushionTimer / 6;
+          if (this.cushionTimer <= 0) {
+            this.jumpPhase = 'none';
+            this.landingProgress = 0;
+          }
+        }
+
+        if (isLoaf) {
+          manualInput = true;
+          this.manualActionLock = 0;
+          this.setAction('loaf', 60);
+          this.targetVx = 0;
+        } else if (isStretch) {
+          manualInput = true;
+          this.manualActionLock = 0;
+          this.setAction('stretch', 60);
+          this.targetVx = 0;
+        } else if (isSleep) {
+          manualInput = true;
+          this.manualActionLock = 0;
+          this.setAction('sleep', 60);
+          this.targetVx = 0;
+        } else if (isLeft || isRight) {
+          manualInput = true;
+          this.manualActionLock = 0;
+          this.facing = isRight ? 1 : -1;
+          const speed = isRun ? 4.2 : 2.0;
+          this.targetVx = this.facing * speed;
+          this.setAction(isRun ? 'run' : 'walk', 60);
+        } else if (this.targetX !== null) {
+          // 鼠标寻路
+          manualInput = true;
+          this.manualActionLock = 0;
+          const dx = this.targetX - this.x;
+          if (Math.abs(dx) > 10) {
+            this.facing = dx > 0 ? 1 : -1;
+            const isFar = Math.abs(dx) > 150;
+            const speed = isFar ? 3.8 : 2.0;
+            this.targetVx = this.facing * speed;
+            this.setAction(isFar ? 'run' : 'walk', 60);
+          } else {
+            this.targetX = null;
+            this.targetVx = 0;
+            this.setAction('idle', 100);
+          }
+        }
+
+        // 跳跃指令 (带蓄力下压与缓冲)
+        if (isJump && this.currentPlatform) {
+          manualInput = true;
+          this.manualActionLock = 0;
+          this.triggerJump(-7.5);
+        }
+
+        // ---------------- 2. 玩具与环境互动 ----------------
+        if (!manualInput) {
+          if (laserActive) {
+            const dx = laserPos.x - this.x;
+            this.facing = dx > 0 ? 1 : -1;
+            if (Math.abs(dx) > 20) {
+              this.targetVx = (dx > 0 ? 1 : -1) * 3.8;
+              this.setAction('run', 60);
+            } else {
+              this.targetVx = 0;
+              this.triggerJump(-5.0, 0);
+              spawnHearts(this.x, this.y);
+            }
+          } else if (yarnBall) {
+            const dx = yarnBall.x - this.x;
+            this.facing = dx > 0 ? 1 : -1;
+            if (Math.abs(dx) > 30) {
+              this.targetVx = (dx > 0 ? 1 : -1) * 3.4;
+              this.setAction('run', 60);
+            } else {
+              this.targetVx = 0;
+              this.triggerJump(-4.5, 0);
+              yarnBall.vx = this.facing * 5.0;
+              yarnBall.vy = -4.0;
+              this.say("啪！击中毛线球！🧶", 60);
+              playCatSound('meow');
+            }
+          } else if (fishTreat) {
+            const dx = fishTreat.x - this.x;
+            this.facing = dx > 0 ? 1 : -1;
+            if (Math.abs(dx) > 15) {
+              this.targetVx = (dx > 0 ? 1 : -1) * 4.0;
+              this.setAction('run', 60);
+            } else {
+              this.targetVx = 0;
+              this.feedFish();
+              fishTreat = null;
+            }
+          } else if (autoAiEnabled && !this.deepSleep && this.manualActionLock <= 0) {
+            // 当用户没有操作且无主动交互锁时，在底部导航栏进行固定程序巡游循环
+            this.updatePatrolRoutine();
+          }
+        }
+
+        // 速度平滑惯性加速度 (消除生硬刹车与起步)
+        if (this.jumpPhase !== 'flight') {
+          this.vx += (this.targetVx - this.vx) * 0.22;
+          if (Math.abs(this.vx) < 0.05 && this.targetVx === 0) this.vx = 0;
+        }
+
+        // ---------------- 3. 重力与物理碰撞 ----------------
+        const gravity = 0.48;
+        this.vy += gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // 摩擦阻尼
+        if (!manualInput && !laserActive && !yarnBall && !fishTreat && this.manualActionLock <= 0) {
+          if (this.action !== 'walk' && this.action !== 'run') {
+            this.vx *= 0.82;
+            if (Math.abs(this.vx) < 0.1) this.vx = 0;
+          }
+        }
+
+        // 平台触地检测
+        let landed = false;
+        for (const plat of platforms) {
+          const catBottomPrev = this.y - this.vy;
+          const catBottom = this.y;
+          if (this.x >= plat.x - 20 && this.x <= plat.x + plat.w + 20) {
+            if (catBottomPrev <= plat.y + 6 && catBottom >= plat.y) {
+              this.y = plat.y;
+              this.vy = 0;
+              this.currentPlatform = plat;
+              landed = true;
+              if (this.jumpPhase === 'flight' || this.action === 'jump') {
+                this.jumpPhase = 'cushion';
+                this.cushionTimer = 7;
+                this.landingProgress = 1.0;
+                this.setAction('idle', 60);
+                spawnDust(this.x, this.y);
+                this.targetVx *= 0.3;
+                this.vx *= 0.3;
+              }
+              break;
+            }
+          }
+        }
+        if (!landed) {
+          this.currentPlatform = null;
+          if (this.action !== 'jump' && this.vy > 2.0 && this.jumpPhase !== 'anticipate') {
+            this.action = 'jump';
+          }
+        }
+
+        // 边界保护
+        if (this.x < 40) { this.x = 40; this.vx = 0; this.targetVx = 0; }
+        if (this.x > viewW - 40) { this.x = viewW - 40; this.vx = 0; this.targetVx = 0; }
+
+        // ---------------- 4. 逐帧动画序列推进 (Sprite Flipbook Engine) ----------------
+        this.frameTimer++;
+        if (this.action === 'walk') {
+          // 8 FPS (每 8 帧切换一次步态图片)
+          if (this.frameTimer >= 8) {
+            this.frameTimer = 0;
+            this.animFrameIndex = (this.animFrameIndex + 1) % 4;
+            spawnDust(this.x - this.facing * 12, this.y);
+          }
+        } else if (this.action === 'run') {
+          // 12 FPS (每 5 帧切换一次大跨步奔跑图片)
+          if (this.frameTimer >= 5) {
+            this.frameTimer = 0;
+            this.animFrameIndex = (this.animFrameIndex + 1) % 4;
+            spawnDust(this.x - this.facing * 16, this.y);
+          }
+        } else if (this.action === 'sleep') {
+          spawnZzz(this.x, this.y);
+        }
+      }
+
+      // ---------------- 5. 核心渲染：逐帧图片直接绘制 (Ground Anchor Normalization) ----------------
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(Math.round(this.x), Math.round(this.y));
+        ctx.scale(this.renderFacingScale, 1);
+
+        // 阴影
+        const shadowScale = (this.action === 'jump' || this.jumpPhase === 'flight') 
+          ? Math.max(0.4, 1 - Math.abs(this.vy) * 0.08) 
+          : 1.0;
+        ctx.fillStyle = "rgba(10, 12, 18, 0.35)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 36 * this.scale * shadowScale, 9 * this.scale * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 确定当前应该显示的定格帧名称 (起跳蓄力与落地吸收使用低姿态 loaf 帧，真实下蹲)
+        let frameName = 'idle';
+        if (this.jumpPhase === 'anticipate' || this.jumpPhase === 'cushion') {
+          frameName = 'loaf';
+        } else if (this.action === 'walk') {
+          frameName = `walk_${this.animFrameIndex}`;
+        } else if (this.action === 'run') {
+          frameName = `run_${this.animFrameIndex}`;
+        } else if (this.action === 'jump' || this.jumpPhase === 'flight') {
+          frameName = 'jump';
+        } else if (this.action === 'stretch') {
+          frameName = 'stretch';
+        } else if (this.action === 'loaf') {
+          frameName = 'loaf';
+        } else if (this.action === 'sleep') {
+          frameName = 'sleep';
+        } else if (this.isDangling) {
+          frameName = 'jump';
+        }
+
+        // 获取预加载的真实定格动作图片 (每个动物专属独立帧库)
+        const currentImages = spriteCache[currentSkin] || spriteCache['cat_white'];
+        const img = currentImages[frameName] || currentImages['idle'];
+
+        if (img && img.complete && img.naturalWidth > 0) {
+          // 绝对地平面接触点注册归一化：消除任何上下跳动与怪异抽搐
+          const drawSize = 112 * this.scale;
+          const anchorX = drawSize * 0.5; // 水平中心居中
+          const groundAnchorY = drawSize * (236 / 256); // 真实地平面接触线对齐 (标准 256 规格下的 y=236)
+
+          // 四足迈步行走垂直起伏与步态微晃 (Footstep Bobbing & Cadence)
+          const isMoving = (this.action === 'walk' || this.action === 'run') && Math.abs(this.vx) > 0.2;
+          const walkPhase = this.actionTime * (this.action === 'run' ? 0.36 : 0.22);
+          const walkBob = isMoving ? Math.abs(Math.sin(walkPhase)) * (this.action === 'run' ? 4.5 : 2.6) * this.scale : 0;
+          const walkTilt = isMoving ? Math.sin(walkPhase) * (this.action === 'run' ? 0.05 : 0.03) : 0;
+
+          // 起跳蓄力下压形变 (Squash Anticipation) 与 落地吸收 (Cushion Rebound)
+          let stretchScaleX = 1;
+          let stretchScaleY = 1;
+          let offsetY = 0;
+
+          if (this.jumpPhase === 'anticipate') {
+            const p = 1 - (this.anticipateTimer / 7);
+            const squash = Math.sin(p * Math.PI);
+            stretchScaleY = 0.92 - squash * 0.14; // 结合 loaf 帧进行适度蓄力压缩
+            stretchScaleX = 1.04 + squash * 0.10;
+            offsetY = squash * 3;
+          } else if (this.jumpPhase === 'cushion' || this.landingProgress > 0) {
+            // 落地肉垫着地吸收缓冲
+            const cushion = Math.sin(this.landingProgress * Math.PI);
+            stretchScaleY = 0.94 - cushion * 0.12;
+            stretchScaleX = 1.03 + cushion * 0.08;
+            offsetY = cushion * 2;
+          }
+
+          // 姿态平滑展开过渡
+          if (this.unfoldTimer > 0) {
+            stretchScaleY = 1.0 - (this.unfoldTimer / 5) * 0.12;
+            stretchScaleX = 1.0 + (this.unfoldTimer / 5) * 0.10;
+          }
+
+          // 步态轻微倾斜
+          if (walkTilt !== 0) {
+            ctx.rotate(walkTilt);
+          }
+
+          // 微动作形变效果：歪头、甩头、打滚
+          if (this.tiltTimer > 0) {
+            ctx.rotate(0.20);
+          }
+          if (this.shakeTimer > 0) {
+            ctx.rotate(Math.sin(this.shakeTimer * 1.4) * 0.15);
+          }
+          if (this.rollTimer > 0) {
+            const rollProgress = (80 - this.rollTimer) / 80;
+            ctx.rotate(rollProgress * Math.PI * 2);
+          }
+
+          ctx.translate(0, offsetY - walkBob);
+          ctx.scale(stretchScaleX, stretchScaleY);
+          ctx.drawImage(img, -anchorX, -groundAnchorY, drawSize, drawSize);
+
+          // 眨眼效果 (精确定位于面部眼部锚点 -60 * scale)
+          if (this.blinkTimer > 0 || (this.action === 'idle' && this.actionTime % 240 > 230)) {
+            ctx.fillStyle = "rgba(40, 35, 30, 0.85)";
+            const eyeY = -60 * this.scale;
+            const eyeW = 8 * this.scale;
+            const eyeH = 3 * this.scale;
+            ctx.fillRect(-12 * this.scale, eyeY, eyeW, eyeH);
+            ctx.fillRect(6 * this.scale, eyeY, eyeW, eyeH);
+          }
+        }
+
+        ctx.restore();
+
+        // 漫画气泡
+        if (this.speechTimer > 0 && this.speechBubble) {
+          this.drawBubble(ctx);
+        }
+      }
+
+
+      drawBubble(ctx) {
+        ctx.save();
+        ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        const metrics = ctx.measureText(this.speechBubble);
+        const bubbleW = metrics.width + 20;
+        const bubbleH = 28;
+        const bx = this.x - bubbleW / 2;
+        const by = this.y - 120 * this.scale;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+        ctx.strokeStyle = "#333644";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bubbleW, bubbleH, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(this.x - 4, by + bubbleH);
+        ctx.lineTo(this.x, by + bubbleH + 6);
+        ctx.lineTo(this.x + 4, by + bubbleH);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#222";
+        ctx.fillText(this.speechBubble, bx + 10, by + 18);
+        ctx.restore();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 7. 模块化场景家具绘制 (按需切换，绝不堆叠拥挤)
+    // -------------------------------------------------------------
+    function drawEnvironment(ctx) {
+      // 1. 基础地面与踢脚线
+      const floor = platforms[0];
+      if (floor) {
+        ctx.fillStyle = "#232530";
+        ctx.fillRect(floor.x, floor.y, floor.w, floor.h);
+        ctx.fillStyle = "#d4a373";
+        ctx.fillRect(floor.x, floor.y, floor.w, 4);
+
+        ctx.fillStyle = "#2e3140";
+        ctx.fillRect(viewW * 0.05, floor.y + 4, viewW * 0.90, floor.h - 4);
+      }
+
+      // 2. 依据当前场景 currentScene 仅绘制所属家具
+      if (currentScene === 'desk') {
+        // 【工位小书桌场景】
+        const desk = platforms.find(p => p.id === 'desk');
+        if (desk) {
+          // 书桌下方地毯
+          ctx.fillStyle = "rgba(62, 66, 86, 0.7)";
+          ctx.beginPath();
+          ctx.ellipse(desk.x + desk.w / 2, floor.y + 10, desk.w * 0.65, 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 实木小桌面板
+          ctx.fillStyle = "#8d6e63";
+          ctx.fillRect(desk.x, desk.y, desk.w, desk.h);
+          ctx.fillStyle = "#a1887f";
+          ctx.fillRect(desk.x, desk.y, desk.w, 4);
+
+          // 桌腿
+          ctx.fillStyle = "#6d4c41";
+          ctx.fillRect(desk.x + 16, desk.y + desk.h, 12, floor.y - (desk.y + desk.h));
+          ctx.fillRect(desk.x + desk.w - 28, desk.y + desk.h, 12, floor.y - (desk.y + desk.h));
+
+          // 笔记本电脑/书本
+          ctx.fillStyle = "#eceff1";
+          ctx.fillRect(desk.x + 22, desk.y - 18, 36, 18);
+          ctx.fillStyle = "#37474f";
+          ctx.fillRect(desk.x + 24, desk.y - 16, 32, 14);
+          ctx.fillStyle = "#b0bec5";
+          ctx.fillRect(desk.x + 18, desk.y - 2, 44, 2);
+
+          // 冒着热气的暖心咖啡
+          const mugX = desk.x + desk.w - 48;
+          const mugY = desk.y - 16;
+          ctx.fillStyle = "#fff8e1";
+          ctx.fillRect(mugX, mugY, 15, 16);
+          ctx.fillStyle = "#5d4037";
+          ctx.fillRect(mugX + 2, mugY, 11, 3);
+          const steam = Math.sin(Date.now() * 0.005) * 2;
+          ctx.fillStyle = "rgba(255,255,255,0.65)";
+          ctx.fillRect(mugX + 6 + steam, mugY - 6, 2, 4);
+          ctx.fillRect(mugX + 8 - steam, mugY - 11, 2, 3);
+
+          // 桌面多肉小植物
+          const potX = desk.x + desk.w / 2 - 10;
+          const potY = desk.y - 12;
+          ctx.fillStyle = "#bf360c";
+          ctx.fillRect(potX, potY + 4, 12, 8);
+          ctx.fillStyle = "#81c784";
+          ctx.fillRect(potX + 2, potY + 1, 8, 4);
+          ctx.fillStyle = "#4caf50";
+          ctx.fillRect(potX + 3, potY - 3, 6, 4);
+        }
+      } else if (currentScene === 'cattree') {
+        // 【猫爬架瞭望台场景】
+        const low = platforms.find(p => p.id === 'cattree_low');
+        const high = platforms.find(p => p.id === 'cattree_high');
+        if (high && low) {
+          const postX = high.x + 55;
+
+          // 剑麻立柱与麻绳横纹
+          ctx.fillStyle = "#d7ccc8";
+          ctx.fillRect(postX, high.y + high.h, 20, floor.y - (high.y + high.h));
+          ctx.fillStyle = "#bcaaa4";
+          for (let y = high.y + 18; y < floor.y; y += 7) {
+            ctx.fillRect(postX, y, 20, 2);
+          }
+
+          // 稳固底座
+          ctx.fillStyle = "#a1887f";
+          ctx.fillRect(postX - 25, floor.y - 8, 70, 8);
+
+          // 低层软垫跳板
+          ctx.fillStyle = "#8d6e63";
+          ctx.fillRect(low.x, low.y, low.w, low.h);
+          ctx.fillStyle = "#ffccbc";
+          ctx.fillRect(low.x + 4, low.y - 3, low.w - 8, 4);
+
+          // 顶层瞭望圆盘
+          ctx.fillStyle = "#8d6e63";
+          ctx.fillRect(high.x, high.y, high.w, high.h);
+          ctx.fillStyle = "#ffab91";
+          ctx.fillRect(high.x + 4, high.y - 4, high.w - 8, 5);
+
+          // 摇摆逗猫球
+          const swing = Math.sin(Date.now() * 0.004) * 10;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(high.x + 24, high.y + high.h);
+          ctx.lineTo(high.x + 24 + swing, high.y + high.h + 24);
+          ctx.stroke();
+          ctx.fillStyle = "#ff4081";
+          ctx.beginPath();
+          ctx.arc(high.x + 24 + swing, high.y + high.h + 27, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (currentScene === 'bed') {
+        // 【温馨猫窝地毯场景】
+        const bedX = viewW * 0.40;
+        const bedY = floor.y - 12;
+
+        // 羊羔绒甜甜圈猫窝
+        ctx.fillStyle = "#f8bbd0";
+        ctx.beginPath();
+        ctx.ellipse(bedX, bedY, 48, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff0f5";
+        ctx.beginPath();
+        ctx.ellipse(bedX, bedY - 4, 36, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 陶瓷双格食水盆
+        const dishX = viewW * 0.64;
+        const dishY = floor.y - 8;
+        ctx.fillStyle = "#eceff1";
+        ctx.fillRect(dishX, dishY, 46, 11);
+        ctx.fillStyle = "#ffa726"; // 鲜鱼干颗粒
+        ctx.fillRect(dishX + 4, dishY + 2, 16, 7);
+        ctx.fillStyle = "#4fc3f7"; // 清澈清水
+        ctx.fillRect(dishX + 26, dishY + 2, 16, 7);
+
+        // 彩色逗趣毛线球
+        const yarnX = viewW * 0.22;
+        const yarnY = floor.y - 12;
+        ctx.fillStyle = "#ec407a";
+        ctx.beginPath();
+        ctx.arc(yarnX, yarnY, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#f48fb1";
+        ctx.fillRect(yarnX - 6, yarnY - 2, 12, 4);
+        ctx.strokeStyle = "#ec407a";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(yarnX + 8, yarnY + 4);
+        ctx.quadraticCurveTo(yarnX + 22, yarnY + 12, yarnX + 38, yarnY + 6);
+        ctx.stroke();
+      }
+      // 【极简纯净桌面场景】：不绘制多余家具，留下宽敞纯净自由游走空间！
+    }
+
+    // -------------------------------------------------------------
+    // 8. 玩具与粒子绘制
+    // -------------------------------------------------------------
+    function updateAndDrawToys(ctx) {
+      if (laserActive) {
+        ctx.fillStyle = "#ff1744";
+        ctx.shadowColor = "#ff1744";
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(laserPos.x, laserPos.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      if (yarnBall) {
+        yarnBall.vy += 0.4;
+        yarnBall.x += yarnBall.vx;
+        yarnBall.y += yarnBall.vy;
+        yarnBall.vx *= 0.98;
+
+        const floorY = platforms[0].y;
+        if (yarnBall.y > floorY - yarnBall.radius) {
+          yarnBall.y = floorY - yarnBall.radius;
+          yarnBall.vy = -yarnBall.vy * 0.65;
+          if (Math.abs(yarnBall.vy) < 0.8) yarnBall.vy = 0;
+        }
+
+        ctx.fillStyle = "#ff4081";
+        ctx.beginPath();
+        ctx.arc(yarnBall.x, yarnBall.y, yarnBall.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#f8bbd0";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(yarnBall.x, yarnBall.y, yarnBall.radius - 2, 0.4, 2.8);
+        ctx.stroke();
+      }
+
+      if (fishTreat) {
+        fishTreat.vy = (fishTreat.vy || 0) + 0.35;
+        fishTreat.y += fishTreat.vy;
+        const floorY = platforms[0].y;
+        if (fishTreat.y > floorY - 5) {
+          fishTreat.y = floorY - 5;
+          fishTreat.vy = 0;
+        }
+        ctx.fillStyle = "#ffa726";
+        ctx.fillRect(fishTreat.x - 8, fishTreat.y - 4, 16, 6);
+        ctx.fillStyle = "#fb8c00";
+        ctx.beginPath();
+        ctx.moveTo(fishTreat.x + 8, fishTreat.y - 1);
+        ctx.lineTo(fishTreat.x + 13, fishTreat.y - 6);
+        ctx.lineTo(fishTreat.x + 13, fishTreat.y + 4);
+        ctx.fill();
+      }
+    }
+
+    function updateAndDrawParticles(ctx) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.016;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.globalAlpha = Math.max(0, p.life);
+        if (p.type === "heart") {
+          ctx.fillStyle = "#ff4081";
+          ctx.font = `${p.size}px sans-serif`;
+          ctx.fillText("♥", p.x, p.y);
+        } else if (p.type === "dust") {
+          ctx.fillStyle = "#cfd8dc";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.type === "zzz") {
+          ctx.fillStyle = "#90caf9";
+          ctx.font = `bold ${p.size}px sans-serif`;
+          ctx.fillText("z", p.x, p.y);
+        }
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 9. 音频播放
+    // -------------------------------------------------------------
+    let audioCtx = null;
+    function playCatSound(type = 'meow') {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(1400, now);
+        filter.Q.setValueAtTime(2.5, now);
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(740, now);
+        osc.frequency.exponentialRampToValueAtTime(460, now + 0.3);
+        osc.frequency.linearRampToValueAtTime(500, now + 0.42);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.18, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.44);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.45);
+      } catch (_) {}
+    }
+
+    // -------------------------------------------------------------
+    // 10. 初始化与主循环
+    // -------------------------------------------------------------
+    const pet = new GameCat();
+    let autoAiEnabled = true;
+
+    function init() {
+      resizeCanvas();
+      pet.x = viewW * 0.35;
+      pet.y = platforms[0].y;
+      requestAnimationFrame(mainLoop);
+    }
+
+    function updateVitalsDisplay() {
+      const foodFill = document.getElementById("vitalsFoodFill");
+      const waterFill = document.getElementById("vitalsWaterFill");
+      if (foodFill) foodFill.style.width = pet.hunger + "%";
+      if (waterFill) waterFill.style.width = pet.thirst + "%";
+    }
+
+    function mainLoop() {
+      ctx.clearRect(0, 0, viewW, viewH);
+
+      drawEnvironment(ctx);
+      updateAndDrawToys(ctx);
+
+      pet.update();
+      pet.draw(ctx);
+
+      updateAndDrawParticles(ctx);
+
+      // 饱食度与水分状态 HUD 跟随宠物头顶
+      const vitalsHud = document.getElementById("petVitalsHud");
+      if (vitalsHud) {
+        vitalsHud.style.left = Math.round(pet.x) + "px";
+        vitalsHud.style.top = Math.round(pet.y - 80 * pet.scale) + "px";
+      }
+
+      const platName = pet.currentPlatform ? (pet.currentPlatform.name || "地面") : "空中";
+      document.getElementById("statusCoord").innerText = `位置: ${platName} | 缩放: ${pet.scale.toFixed(1)}x`;
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    // -------------------------------------------------------------
+    // 11. UI 事件交互
+    // -------------------------------------------------------------
+    const skinSelect = document.getElementById("skinSelect");
+    skinSelect.onchange = () => {
+      currentSkin = skinSelect.value;
+      pet.say(`切换为：${skinSelect.options[skinSelect.selectedIndex].text}！`, 90);
+      spawnHearts(pet.x, pet.y);
+    };
+
+    // 场景切换按钮绑定
+    document.querySelectorAll(".scene-btn").forEach(btn => {
+      btn.onclick = () => {
+        setScene(btn.dataset.scene);
+      };
+    });
+
+    const scaleSlider = document.getElementById("scaleSlider");
+    const scaleVal = document.getElementById("scaleVal");
+    scaleSlider.oninput = () => {
+      pet.scale = parseFloat(scaleSlider.value);
+      scaleVal.innerText = `${pet.scale.toFixed(1)}x`;
+    };
+
+    const laserBtn = document.getElementById("laserBtn");
+    laserBtn.onclick = () => {
+      laserActive = !laserActive;
+      laserBtn.classList.toggle("active", laserActive);
+      canvas.classList.toggle("laser-cursor", laserActive);
+      if (laserActive) pet.say("发现红点！准备追捕！👀", 90);
+    };
+
+    const toyBtn = document.getElementById("toyBtn");
+    toyBtn.onclick = () => {
+      yarnBall = {
+        x: pet.x + (pet.facing > 0 ? 80 : -80),
+        y: pet.y - 60,
+        vx: pet.facing * 4.0,
+        vy: -4,
+        radius: 10
+      };
+      pet.say("毛线球来啦！去扑！🧶", 90);
+    };
+
+    const treatBtn = document.getElementById("treatBtn");
+    treatBtn.onclick = () => {
+      fishTreat = {
+        x: pet.x + (pet.facing > 0 ? 70 : -70),
+        y: pet.y - 80,
+        vy: -2
+      };
+      pet.say("闻到了小鱼干香味！🐟", 90);
+    };
+
+    const autoAiBtn = document.getElementById("autoAiBtn");
+    autoAiBtn.onclick = () => {
+      autoAiEnabled = !autoAiEnabled;
+      autoAiBtn.classList.toggle("active", autoAiEnabled);
+      autoAiBtn.innerText = autoAiEnabled ? "🤖 自主生活: 开" : "⏸ 自主生活: 关";
+      pet.say(autoAiEnabled ? "底部巡游固定程序已开启🐾" : "等待键盘/鼠标操控🎮", 90);
+    };
+
+    // 右键动作交互菜单逻辑 (精准还原 media_1788575768915.jpg)
+    const contextMenu = document.getElementById("petContextMenu");
+
+    function showContextMenu(clientX, clientY) {
+      contextMenu.classList.remove("hidden");
+      const rect = canvas.getBoundingClientRect();
+      let x = clientX - rect.left;
+      let y = clientY - rect.top;
+
+      const menuW = 160;
+      const menuH = 460;
+      if (x + menuW > rect.width) x = rect.width - menuW - 12;
+      if (y + menuH > rect.height) y = rect.height - menuH - 12;
+      if (x < 10) x = 10;
+      if (y < 10) y = 10;
+
+      contextMenu.style.left = x + "px";
+      contextMenu.style.top = y + "px";
+    }
+
+    function hideContextMenu() {
+      contextMenu.classList.add("hidden");
+    }
+
+    canvas.oncontextmenu = (e) => {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY);
+    };
+    const stageWrap = document.getElementById("stageWrapper");
+    if (stageWrap) {
+      stageWrap.oncontextmenu = (e) => {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY);
+      };
+    }
+
+    document.addEventListener("pointerdown", (e) => {
+      if (!contextMenu.contains(e.target)) {
+        hideContextMenu();
+      }
+    });
+
+    contextMenu.querySelectorAll(".menu-item").forEach(item => {
+      const handleAction = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const act = item.dataset.action;
+        hideContextMenu();
+        switch (act) {
+          case "blink": pet.triggerBlink(); break;
+          case "tilt": pet.triggerTilt(); break;
+          case "roll": pet.triggerRoll(); break;
+          case "look": pet.triggerLook(); break;
+          case "yawn": pet.triggerYawn(); break;
+          case "love": pet.triggerLove(); break;
+          case "stretch": pet.triggerStretch(); break;
+          case "shake": pet.triggerShake(); break;
+          case "hiss": pet.triggerHiss(); break;
+          case "eat": pet.triggerEat(); break;
+          case "drink": pet.triggerDrink(); break;
+          case "loaf": pet.triggerLoaf(); break;
+          case "sleep": pet.triggerSleep(); break;
+          case "deepsleep": pet.triggerDeepSleep(); break;
+          case "wake": pet.triggerWake(); break;
+          case "feedfish": pet.feedFish(); break;
+          case "feedwater": pet.feedWater(); break;
+          case "walk": manualTrigger('walk'); break;
+          case "run": manualTrigger('run'); break;
+          case "jump": pet.triggerJump(-7.5); break;
+          case "close": hideContextMenu(); break;
+        }
+      };
+      item.addEventListener("pointerdown", (e) => e.stopPropagation());
+      item.addEventListener("click", handleAction);
+    });
+
+    // 鼠标点击移动寻路或按住拎起
+    let isMouseDown = false;
+    let dragOffset = { x: 0, y: 0 };
+
+    canvas.onpointerdown = (e) => {
+      if (e.button === 2) return; // 右键交由 oncontextmenu 处理
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      if (laserActive) {
+        laserPos = { x: mx, y: my };
+        return;
+      }
+
+      const hitRadius = 50 * pet.scale;
+      if (Math.hypot(mx - pet.x, my - (pet.y - 40 * pet.scale)) < hitRadius) {
+        isMouseDown = true;
+        pet.isDangling = true;
+        dragOffset = { x: pet.x - mx, y: pet.y - my };
+        pet.say("被拎起后颈皮～喵！🐾", 60);
+        playCatSound('meow');
+      } else {
+        // 点击地面：小猫跑向点击位置！
+        pet.targetX = mx;
+        spawnDust(mx, my);
+      }
+    };
+
+    window.onpointermove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      if (laserActive) {
+        laserPos = { x: mx, y: my };
+      }
+
+      if (isMouseDown && pet.isDangling) {
+        pet.x = mx + dragOffset.x;
+        pet.y = my + dragOffset.y;
+        pet.vx = 0;
+        pet.vy = 0;
+      }
+    };
+
+    window.onpointerup = () => {
+      if (isMouseDown && pet.isDangling) {
+        isMouseDown = false;
+        pet.isDangling = false;
+        pet.say("稳稳落地！🐾", 70);
+        spawnDust(pet.x, pet.y);
+      }
+    };
+
+    function manualTrigger(act) {
+      pet.targetX = null;
+      switch (act) {
+        case 'walk':
+          pet.manualActionLock = 180;
+          pet.facing = Math.random() < 0.5 ? 1 : -1;
+          pet.targetVx = pet.facing * 2.0;
+          pet.setAction('walk', 180);
+          pet.say("逐帧迈步漫步中～🐾", 80);
+          break;
+        case 'run':
+          pet.manualActionLock = 180;
+          pet.facing = Math.random() < 0.5 ? 1 : -1;
+          pet.targetVx = pet.facing * 4.2;
+          pet.setAction('run', 140);
+          pet.say("真实腾空大跨步奔跑！💨", 80);
+          break;
+        case 'jump':
+          pet.manualActionLock = 120;
+          pet.triggerJump(-7.5);
+          pet.say("蓄力起跳飞跃！🐾", 80);
+          break;
+        case 'stretch':
+          pet.triggerStretch();
+          break;
+        case 'loaf':
+          pet.triggerLoaf();
+          break;
+        case 'sleep':
+          pet.triggerSleep();
+          break;
+        case 'meow':
+          pet.triggerLove();
+          break;
+      }
+    }
+
+    function updateStatusHud(action) {
+      const names = {
+        idle: "待机 (Idle 站立)",
+        walk: "逐帧行走 (Walk 迈步)",
+        run: "逐帧奔跑 (Run 腾空)",
+        jump: "抛物线跳跃 (Jump 蓄力与缓冲)",
+        stretch: "猫式伸展 (Stretch)",
+        loaf: "揣手手趴卧 (Loaf)",
+        sleep: "甜甜圈甜睡 (Sleep)",
+        dangle: "被拎起悬空 (Dangle)"
+      };
+      document.getElementById("statusAction").innerText = names[action] || action;
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
