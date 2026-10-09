@@ -3640,7 +3640,7 @@ dependencies = [
  "gif",
  "hex",
  "keyring",
- "png 0.17.16",
+ "png 0.18.1",
  "rand 0.8.7",
  "reqwest 0.12.28",
  "rusqlite",
