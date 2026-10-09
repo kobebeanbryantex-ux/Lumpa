@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D 俯视角像素风游戏 - 金币收集终极版 (8-Bit BGM 与全功能沙盒神作)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #080d09;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      user-select: none;
+    }
+    .game-container {
+      position: relative;
+      width: 960px;
+      height: 540px;
+    }
+    #displayCanvas {
+      display: block;
+      width: 960px;
+      height: 540px;
+      background-color: #000;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
+      border: 3px solid #335c28;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* 迷你小地图 UI 挂载在左上角 */
+    .minimap-wrapper {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(12, 20, 14, 0.88);
+      border: 2px solid #689F38;
+      border-radius: 8px;
+      padding: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .minimap-title {
+      color: #AED581;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    #minimapCanvas {
+      display: block;
+      width: 96px;
+      height: 60px;
+      background-color: #111;
+      border: 1px solid #335c28;
+      border-radius: 4px;
+      image-rendering: pixelated;
+    }
+
+    /* 右上角游戏目标 UI：金币计数器与 BGM 开关 */
+    .hud-top-right {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .coin-counter {
+      background: rgba(20, 35, 22, 0.9);
+      border: 2px solid #FFD54F;
+      border-radius: 20px;
+      padding: 6px 16px;
+      color: #FFF59D;
+      font-size: 15px;
+      font-weight: bold;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bgm-btn {
+      background: rgba(30, 20, 45, 0.9);
+      border: 1.5px solid #BA68C8;
+      border-radius: 16px;
+      padding: 4px 14px;
+      color: #E1BEE7;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+    }
+    .bgm-btn:hover {
+      background: rgba(50, 30, 70, 0.95);
+      color: #FFF;
+      transform: scale(1.05);
+    }
+
+    /* 通关胜利弹窗 (Victory Overlay) */
+    .victory-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 25, 15, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: #FFF;
+      z-index: 99;
+      animation: fadeIn 0.5s ease forwards;
+    }
+    .victory-title {
+      font-size: 36px;
+      font-weight: bold;
+      color: #FFD54F;
+      text-shadow: 0 0 20px rgba(255, 213, 79, 0.8);
+    }
+    .victory-subtitle {
+      font-size: 16px;
+      color: #DCEDC8;
+    }
+    .restart-btn {
+      margin-top: 10px;
+      background: #8BC34A;
+      color: #1B380C;
+      border: none;
+      padding: 10px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(139, 195, 74, 0.5);
+    }
+    .restart-btn:hover {
+      background: #9CCC65;
+      transform: scale(1.08);
+    }
+
+    .focus-tip {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #DCEDC8;
+      font-size: 12px;
+      background: rgba(15, 25, 18, 0.85);
+      padding: 4px 16px;
+      border-radius: 16px;
+      border: 1px solid #386629;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game-container">
+    <!-- 主游戏画布 -->
+    <canvas id="displayCanvas" width="960" height="540" tabindex="0"></canvas>
+
+    <!-- 迷你小地图 (Minimap UI) 独立浮层 -->
+    <div class="minimap-wrapper">
+      <div class="minimap-title" id="mapNameTag">📍 晴空阳关森林</div>
+      <canvas id="minimapCanvas" width="80" height="50"></canvas>
+    </div>
+
+    <!-- 右上角 HUD UI: 金币计数器与 BGM 控制 -->
+    <div class="hud-top-right">
+      <div class="coin-counter">🪙 金币: <span id="coinCount">0</span> / 20</div>
+      <button class="bgm-btn" id="bgmBtn" onclick="toggleBGM()">🎵 BGM: 开启</button>
+    </div>
+
+    <!-- 通关胜利弹窗 -->
+    <div class="victory-overlay" id="victoryOverlay">
+      <div class="victory-title">🎉 恭喜通关！</div>
+      <div class="victory-subtitle">您已成功收集森林中的全部 20 个神秘金币！</div>
+      <button class="restart-btn" onclick="restartGame()">再次游玩</button>
+    </div>
+
+    <div class="focus-tip">按 W/A/S/D 移动角色，寻找两张地图散落的 20 个金币！</div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // 全局基础画布与地图配置
+    // -------------------------------------------------------------
+    const bufferCanvas = document.createElement("canvas");
+    bufferCanvas.width = 320;
+    bufferCanvas.height = 180;
+    const bufferCtx = bufferCanvas.getContext("2d");
+    bufferCtx.imageSmoothingEnabled = false;
+
+    const displayCanvas = document.getElementById("displayCanvas");
+    const displayCtx = displayCanvas.getContext("2d");
+    displayCtx.imageSmoothingEnabled = false;
+    displayCanvas.focus();
+    displayCanvas.addEventListener("click", () => displayCanvas.focus());
+    window.focus();
+
+    const minimapCanvas = document.getElementById("minimapCanvas");
+    const minimapCtx = minimapCanvas.getContext("2d");
+    minimapCtx.imageSmoothingEnabled = false;
+
+    const TILE_SIZE = 16;
+    const COLS = 40;
+    const ROWS = 25;
+    const WORLD_WIDTH = COLS * TILE_SIZE;  // 640px
+    const WORLD_HEIGHT = ROWS * TILE_SIZE; // 400px
+
+    let currentMapIndex = 0;
+    let collectedCoinsCount = 0;
+
+    // =============================================================
+    // 🔊 第四段：Web Audio API 8-Bit 音效与背景音乐合成器 (PURE JS)
+    // =============================================================
+    let audioCtx = null;
+    let bgmMuted = false;
+    let bgmOscillator = null;
+    let bgmTimer = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    // 拾取金币 8-Bit 清脆音效 (Crisp 8-Bit Coin Chime SFX)
+    function playCoinSound() {
+      if (bgmMuted) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "square";
+        
+        // 8-Bit 经典双音升调 (E6 -> B6)
+        osc.frequency.setValueAtTime(1318.51, now);     // E6
+        osc.frequency.setValueAtTime(1975.53, now + 0.08); // B6
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch (e) {}
+    }
+
+    // 通关关响音效
+    function playVictorySound() {
+      if (bgmMuted) return;
+      initAudio();
+      try {
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const now = audioCtx.currentTime + idx * 0.12;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        });
+      } catch (e) {}
+    }
+
+    // 8-Bit 背景音乐合成循环
+    const dayNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // 白天 C 大调
+    const nightNotes = [220.00, 261.63, 329.63, 440.00, 329.63, 261.63]; // 夜晚 A 小调
+    let noteIdx = 0;
+
+    function playBGMStep() {
+      if (bgmMuted || !audioCtx || audioCtx.state !== "running") return;
+      try {
+        const notes = currentMapIndex === 0 ? dayNotes : nightNotes;
+        const freq = notes[noteIdx % notes.length];
+        noteIdx++;
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = currentMapIndex === 0 ? "triangle" : "sine";
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.03, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } catch (e) {}
+    }
+
+    setInterval(playBGMStep, 320);
+
+    function toggleBGM() {
+      initAudio();
+      bgmMuted = !bgmMuted;
+      const btn = document.getElementById("bgmBtn");
+      if (btn) btn.innerText = bgmMuted ? "🔇 BGM: 静音" : "🎵 BGM: 开启";
+    }
+
+    // 任意键盘点击或页面点击时自动激活 Web Audio
+    window.addEventListener("keydown", () => initAudio());
+    window.addEventListener("click", () => initAudio());
+
+
+    // =============================================================
+    // 地图 1：晴空阳关森林 (SUNSHINE FOREST)
+    // =============================================================
+    const map1 = [];
+    for (let r = 0; r < ROWS; r++) {
+      const row = [];
+      for (let c = 0; c < COLS; c++) {
+        if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) row.push(1);
+        else if ((r === 13 || r === 14) && !(c >= 18 && c <= 21)) row.push(4);
+        else if ((r === 13 || r === 14) && (c >= 18 && c <= 21)) row.push(2);
+        else if ((r === 3 && c >= 2 && c <= 37) || (c === 19 && r >= 3 && r <= 22) || (r === 21 && c >= 2 && c <= 37)) row.push(3);
+        else if ((r === 7 && c >= 5 && c <= 15) || (r === 7 && c >= 23 && c <= 33) || (r === 17 && c >= 6 && c <= 15) || (r === 17 && c >= 24 && c <= 34)) row.push(1);
+        else row.push(0);
+      }
+      map1.push(row);
+    }
+
+    const trees1 = [];
+    const treeCoords1 = [
+      { c: 2, r: 1, t: "broadleaf" },  { c: 5, r: 1, t: "pine" },       { c: 8, r: 1, t: "broadleaf" },
+      { c: 25, r: 1, t: "pine" },      { c: 29, r: 1, t: "broadleaf" }, { c: 34, r: 1, t: "pine" },
+      { c: 2, r: 6, t: "pine" },       { c: 16, r: 6, t: "broadleaf" }, { c: 22, r: 6, t: "pine" }, { c: 36, r: 6, t: "broadleaf" },
+      { c: 2, r: 10, t: "broadleaf" }, { c: 12, r: 10, t: "pine" },     { c: 27, r: 10, t: "broadleaf" },{ c: 37, r: 10, t: "pine" },
+      { c: 2, r: 16, t: "pine" },      { c: 16, r: 16, t: "broadleaf" },{ c: 23, r: 16, t: "pine" }, { c: 37, r: 16, t: "broadleaf" },
+      { c: 2, r: 20, t: "broadleaf" }, { c: 7, r: 22, t: "pine" },      { c: 14, r: 22, t: "broadleaf" },{ c: 24, r: 22, t: "pine" },
+      { c: 31, r: 22, t: "broadleaf" }
+    ];
+    treeCoords1.forEach(tc => {
+      trees1.push({
+        x: tc.c * TILE_SIZE, y: tc.r * TILE_SIZE, type: tc.t,
+        trunkX: tc.c * TILE_SIZE + 4, trunkY: tc.r * TILE_SIZE + 18, trunkW: 8, trunkH: 8
+      });
+    });
+
+    const props1 = [];
+    const sunSpots1 = [];
+    for (let r = 1; r < ROWS - 1; r++) {
+      for (let c = 1; c < COLS - 1; c++) {
+        if (map1[r][c] === 0 || map1[r][c] === 3) {
+          const rand = Math.random();
+          const px = c * TILE_SIZE + Math.floor(Math.random() * 8);
+          const py = r * TILE_SIZE + Math.floor(Math.random() * 8);
+          if (rand < 0.12) props1.push({ type: "flower_white", x: px, y: py });
+          else if (rand < 0.22) props1.push({ type: "flower_yellow", x: px, y: py });
+          else if (rand < 0.32) props1.push({ type: "stone", x: px, y: py });
+          else if (rand < 0.50) props1.push({ type: "grass_clump", x: px, y: py });
+          if (rand > 0.86) sunSpots1.push({ x: c * TILE_SIZE + 8, y: r * TILE_SIZE + 8, radius: 14 + Math.random() * 8 });
+        }
+      }
+    }
+    const portal1 = { x: 36 * TILE_SIZE, y: 22 * TILE_SIZE, targetMap: 1, targetX: 48, targetY: 32 };
+
+
+    // =============================================================
+    // 地图 2：幽静紫月深林 (MYSTICAL MOONLIGHT FOREST)
+    // =============================================================
+    const map2 = [];
+    for (let r = 0; r < ROWS; r++) {
+      const row = [];
+      for (let c = 0; c < COLS; c++) {
+        if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) row.push(1);
+        else if ((c === 10 || c === 30) && (r >= 5 && r <= 19)) row.push(1);
+        else if (r === 12 && (c >= 11 && c <= 29)) row.push(3);
+        else row.push(0);
+      }
+      map2.push(row);
+    }
+
+    const trees2 = [];
+    const treeCoords2 = [
+      { c: 3, r: 2, t: "shadow_oak" },  { c: 7, r: 3, t: "violet_pine" }, { c: 14, r: 2, t: "shadow_oak" },
+      { c: 24, r: 2, t: "violet_pine" },{ c: 33, r: 3, t: "shadow_oak" }, { c: 36, r: 2, t: "violet_pine" },
+      { c: 3, r: 8, t: "violet_pine" }, { c: 17, r: 7, t: "shadow_oak" }, { c: 23, r: 8, t: "violet_pine" }, { c: 36, r: 9, t: "shadow_oak" },
+      { c: 4, r: 15, t: "shadow_oak" }, { c: 15, r: 16, t: "violet_pine" },{ c: 25, r: 15, t: "shadow_oak" }, { c: 35, r: 16, t: "violet_pine" },
+      { c: 3, r: 21, t: "violet_pine" },{ c: 18, r: 21, t: "shadow_oak" }, { c: 33, r: 21, t: "violet_pine" }
+    ];
+    treeCoords2.forEach(tc => {
+      trees2.push({
+        x: tc.c * TILE_SIZE, y: tc.r * TILE_SIZE, type: tc.t,
+        trunkX: tc.c * TILE_SIZE + 4, trunkY: tc.r * TILE_SIZE + 18, trunkW: 8, trunkH: 8
+      });
+    });
+
+    const props2 = [];
+    const moonSpots = [];
+    for (let r = 1; r < ROWS - 1; r++) {
+      for (let c = 1; c < COLS - 1; c++) {
+        if (map2[r][c] === 0 || map2[r][c] === 3) {
+          const rand = Math.random();
+          const px = c * TILE_SIZE + Math.floor(Math.random() * 8);
+          const py = r * TILE_SIZE + Math.floor(Math.random() * 8);
+          if (rand < 0.15) props2.push({ type: "flower_magenta", x: px, y: py });
+          else if (rand < 0.30) props2.push({ type: "shroom_cyan", x: px, y: py });
+          else if (rand < 0.42) props2.push({ type: "stone_moss", x: px, y: py });
+          if (rand > 0.85) moonSpots.push({ x: c * TILE_SIZE + 8, y: r * TILE_SIZE + 8, radius: 16 + Math.random() * 8 });
+        }
+      }
+    }
+    const portal2 = { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE, targetMap: 0, targetX: 560, targetY: 340 };
+
+
+    // =============================================================
+    // 🪙 第二段：20 个浮动闪烁金币布局 (COIN GOAL SYSTEM)
+    // 地图 1 散布 10 个，地图 2 散布 10 个
+    // =============================================================
+    const coins = [];
+    const coinSpawns1 = [
+      { c: 4, r: 3 }, { c: 12, r: 5 }, { c: 22, r: 3 }, { c: 32, r: 5 },
+      { c: 8, r: 15 }, { c: 19, r: 11 }, { c: 28, r: 15 }, { c: 35, r: 18 },
+      { c: 10, r: 21 }, { c: 25, r: 21 }
+    ];
+    const coinSpawns2 = [
+      { c: 5, r: 5 }, { c: 15, r: 4 }, { c: 25, r: 5 }, { c: 35, r: 4 },
+      { c: 8, r: 11 }, { c: 20, r: 12 }, { c: 32, r: 11 }, { c: 6, r: 18 },
+      { c: 20, r: 18 }, { c: 34, r: 19 }
+    ];
+
+    let coinIdCounter = 0;
+    coinSpawns1.forEach(cs => {
+      coins.push({ id: coinIdCounter++, mapIndex: 0, x: cs.c * TILE_SIZE + 4, y: cs.r * TILE_SIZE + 4, collected: false });
+    });
+    coinSpawns2.forEach(cs => {
+      coins.push({ id: coinIdCounter++, mapIndex: 1, x: cs.c * TILE_SIZE + 4, y: cs.r * TILE_SIZE + 4, collected: false });
+    });
+
+
+    // =============================================================
+    // 模块一：物理移动与逻辑系统 (第一段穿模彻底修复，手感 100% 保持)
+    // =============================================================
+
+    const player = {
+      x: 48,
+      y: 32,
+      vx: 0,
+      vy: 0,
+      width: 12,
+      height: 12,
+      accel: 0.35,       // 加速度 (完全保持原样)
+      friction: 0.88,    // 阻尼 (完全保持原样)
+      maxSpeed: 2.2,     // 极限速度 (完全保持原样)
+      direction: "down"
+    };
+
+    const keys = { up: false, down: false, left: false, right: false };
+
+    function handleKeyEvent(e, isPressed) {
+      const k = e.key.toLowerCase();
+      if (k === "w" || k === "arrowup") { keys.up = isPressed; if (isPressed) e.preventDefault(); }
+      if (k === "s" || k === "arrowdown") { keys.down = isPressed; if (isPressed) e.preventDefault(); }
+      if (k === "a" || k === "arrowleft") { keys.left = isPressed; if (isPressed) e.preventDefault(); }
+      if (k === "d" || k === "arrowright") { keys.right = isPressed; if (isPressed) e.preventDefault(); }
+    }
+
+    window.addEventListener("keydown", (e) => handleKeyEvent(e, true));
+    window.addEventListener("keyup", (e) => handleKeyEvent(e, false));
+
+    // 第一段：树干碰撞体加回 (isWalkable 包含墙体 1 与 树干 trunk 阻挡，彻底杜绝穿模)
+    function isWalkable(checkX, checkY) {
+      const currentMap = currentMapIndex === 0 ? map1 : map2;
+      const currentTrees = currentMapIndex === 0 ? trees1 : trees2;
+
+      const margin = 1;
+      const corners = [
+        { x: checkX + margin, y: checkY + margin },
+        { x: checkX + player.width - margin, y: checkY + margin },
+        { x: checkX + margin, y: checkY + player.height - margin },
+        { x: checkX + player.width - margin, y: checkY + player.height - margin }
+      ];
+
+      // 1. 墙体阻挡
+      for (const pt of corners) {
+        if (pt.x < TILE_SIZE || pt.x >= WORLD_WIDTH - TILE_SIZE) return false;
+        if (pt.y < TILE_SIZE || pt.y >= WORLD_HEIGHT - TILE_SIZE) return false;
+
+        const col = Math.floor(pt.x / TILE_SIZE);
+        const row = Math.floor(pt.y / TILE_SIZE);
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return false;
+        if (currentMap[row][col] === 1) return false;
+      }
+
+      // 2. 🎯 第一段：树干碰撞体 (trunkX, trunkY, trunkW, trunkH) 严格检测阻挡
+      for (const t of currentTrees) {
+        if (
+          checkX < t.trunkX + t.trunkW &&
+          checkX + player.width > t.trunkX &&
+          checkY < t.trunkY + t.trunkH &&
+          checkY + player.height > t.trunkY
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // 检查金币自动拾取
+    function checkCoinPickups() {
+      for (const coin of coins) {
+        if (coin.mapIndex === currentMapIndex && !coin.collected) {
+          const dist = Math.hypot(
+            (player.x + player.width / 2) - (coin.x + 4),
+            (player.y + player.height / 2) - (coin.y + 4)
+          );
+
+          if (dist < 10) {
+            coin.collected = true;
+            collectedCoinsCount++;
+            playCoinSound(); // 触发 8-Bit 清脆金币音效
+
+            // 更新 UI 计数器
+            const counter = document.getElementById("coinCount");
+            if (counter) counter.innerText = collectedCoinsCount;
+
+            // 收集完 20 个金币触发胜利通关
+            if (collectedCoinsCount >= 20) {
+              playVictorySound();
+              const overlay = document.getElementById("victoryOverlay");
+              if (overlay) overlay.style.display = "flex";
+            }
+          }
+        }
+      }
+    }
+
+    function checkPortalTeleport() {
+      const activePortal = currentMapIndex === 0 ? portal1 : portal2;
+      const dist = Math.hypot(
+        (player.x + player.width / 2) - (activePortal.x + 8),
+        (player.y + player.height / 2) - (activePortal.y + 8)
+      );
+
+      if (dist < 14) {
+        currentMapIndex = activePortal.targetMap;
+        player.x = activePortal.targetX;
+        player.y = activePortal.targetY;
+        player.vx = 0;
+        player.vy = 0;
+
+        const tag = document.getElementById("mapNameTag");
+        if (tag) tag.innerText = currentMapIndex === 0 ? "📍 晴空阳关森林" : "🔮 幽静紫月深林";
+      }
+    }
+
+    function updatePhysics() {
+      if (keys.up) { player.vy -= player.accel; player.direction = "up"; }
+      if (keys.down) { player.vy += player.accel; player.direction = "down"; }
+      if (keys.left) { player.vx -= player.accel; player.direction = "left"; }
+      if (keys.right) { player.vx += player.accel; player.direction = "right"; }
+
+      player.vx *= player.friction;
+      player.vy *= player.friction;
+
+      const speed = Math.hypot(player.vx, player.vy);
+      if (speed > player.maxSpeed) {
+        player.vx = (player.vx / speed) * player.maxSpeed;
+        player.vy = (player.vy / speed) * player.maxSpeed;
+      }
+
+      if (Math.abs(player.vx) < 0.01) player.vx = 0;
+      if (Math.abs(player.vy) < 0.01) player.vy = 0;
+
+      if (player.vx !== 0) {
+        const nextX = player.x + player.vx;
+        if (isWalkable(nextX, player.y)) player.x = nextX;
+        else player.vx = 0;
+      }
+
+      if (player.vy !== 0) {
+        const nextY = player.y + player.vy;
+        if (isWalkable(player.x, nextY)) player.y = nextY;
+        else player.vy = 0;
+      }
+
+      checkCoinPickups();
+      checkPortalTeleport();
+    }
+
+    const camera = { x: 0, y: 0, width: 320, height: 180 };
+    function updateCamera() {
+      const targetX = player.x + player.width / 2 - camera.width / 2;
+      const targetY = player.y + player.height / 2 - camera.height / 2;
+      camera.x += (targetX - camera.x) * 0.15;
+      camera.y += (targetY - camera.y) * 0.15;
+      camera.x = Math.max(0, Math.min(WORLD_WIDTH - camera.width, camera.x));
+      camera.y = Math.max(0, Math.min(WORLD_HEIGHT - camera.height, camera.y));
+    }
+
+    function restartGame() {
+      collectedCoinsCount = 0;
+      coins.forEach(c => c.collected = false);
+      currentMapIndex = 0;
+      player.x = 48;
+      player.y = 32;
+      player.vx = 0;
+      player.vy = 0;
+
+      const counter = document.getElementById("coinCount");
+      if (counter) counter.innerText = "0";
+      const overlay = document.getElementById("victoryOverlay");
+      if (overlay) overlay.style.display = "none";
+      const tag = document.getElementById("mapNameTag");
+      if (tag) tag.innerText = "📍 晴空阳关森林";
+    }
+
+
+    // =============================================================
+    // 🖥️ Minimap UI 小地图渲染
+    // =============================================================
+    function drawMinimap() {
+      minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+      const activeMap = currentMapIndex === 0 ? map1 : map2;
+      const activeTrees = currentMapIndex === 0 ? trees1 : trees2;
+      const activePortal = currentMapIndex === 0 ? portal1 : portal2;
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const type = activeMap[r][c];
+          const mx = c * 2;
+          const my = r * 2;
+
+          if (currentMapIndex === 0) {
+            if (type === 0) minimapCtx.fillStyle = "#4CAF50";
+            else if (type === 1) minimapCtx.fillStyle = "#37474F";
+            else if (type === 2 || type === 3) minimapCtx.fillStyle = "#B0BEC5";
+            else if (type === 4) minimapCtx.fillStyle = "#0288D1";
+          } else {
+            if (type === 0) minimapCtx.fillStyle = "#2E4A3E";
+            else if (type === 1) minimapCtx.fillStyle = "#1A237E";
+            else if (type === 3) minimapCtx.fillStyle = "#8E24AA";
+          }
+          minimapCtx.fillRect(mx, my, 2, 2);
+        }
+      }
+
+      // 未收集的金币在小地图上呈现为黄色小亮点
+      minimapCtx.fillStyle = "#FFD54F";
+      for (const coin of coins) {
+        if (coin.mapIndex === currentMapIndex && !coin.collected) {
+          const mx = Math.floor((coin.x / WORLD_WIDTH) * minimapCanvas.width);
+          const my = Math.floor((coin.y / WORLD_HEIGHT) * minimapCanvas.height);
+          minimapCtx.fillRect(mx, my, 2, 2);
+        }
+      }
+
+      minimapCtx.fillStyle = currentMapIndex === 0 ? "#1B5E20" : "#BA68C8";
+      for (const t of activeTrees) {
+        const mx = Math.floor((t.x / WORLD_WIDTH) * minimapCanvas.width);
+        const my = Math.floor((t.y / WORLD_HEIGHT) * minimapCanvas.height);
+        minimapCtx.fillRect(mx, my, 2, 2);
+      }
+
+      const pMx = Math.floor((activePortal.x / WORLD_WIDTH) * minimapCanvas.width);
+      const pMy = Math.floor((activePortal.y / WORLD_HEIGHT) * minimapCanvas.height);
+      minimapCtx.fillStyle = frameCount % 10 < 5 ? "#E040FB" : "#00E5FF";
+      minimapCtx.fillRect(pMx, pMy, 3, 3);
+
+      const playerMx = Math.floor((player.x / WORLD_WIDTH) * minimapCanvas.width);
+      const playerMy = Math.floor((player.y / WORLD_HEIGHT) * minimapCanvas.height);
+
+      const pulseRadius = 2 + (Math.sin(frameCount * 0.2) + 1);
+      minimapCtx.fillStyle = "rgba(255, 23, 68, 0.4)";
+      minimapCtx.beginPath();
+      minimapCtx.arc(playerMx + 1, playerMy + 1, pulseRadius, 0, Math.PI * 2);
+      minimapCtx.fill();
+
+      minimapCtx.fillStyle = "#FF1744";
+      minimapCtx.fillRect(playerMx, playerMy, 3, 3);
+      minimapCtx.fillStyle = "#FFFFFF";
+      minimapCtx.fillRect(playerMx + 1, playerMy + 1, 1, 1);
+    }
+
+
+    // =============================================================
+    // 🎨 第三段 & 第五段：角色小双腿动画 + 浮动金币 + 极致细节渲染
+    // =============================================================
+
+    const riverStones = [
+      { x: 160, y: 196 }, { x: 172, y: 228 }, { x: 236, y: 196 }, { x: 340, y: 228 },
+      { x: 420, y: 196 }, { x: 500, y: 228 }, { x: 270, y: 228 }, { x: 110, y: 196 }
+    ];
+
+    const particles = [];
+    let frameCount = 0;
+
+    // 第三段：角色小双腿动画 + 可爱方块人装备
+    function drawAdventurer(renderX, renderY, isMoving) {
+      // 1. 左侧深棕色大背包
+      bufferCtx.fillStyle = "#3E2723";
+      bufferCtx.fillRect(renderX - 4, renderY + 2, 4, 8);
+      bufferCtx.fillStyle = "#D7CCC8";
+      bufferCtx.fillRect(renderX - 3, renderY + 5, 2, 2);
+
+      // 2. 黄色帽子边檐点缀
+      bufferCtx.fillStyle = "#FBC02D";
+      bufferCtx.fillRect(renderX + 1, renderY - 2, 10, 2);
+      bufferCtx.fillStyle = "#E65100";
+      bufferCtx.fillRect(renderX, renderY, 12, 1);
+
+      // 3. 主体橘色方块人身躯
+      bufferCtx.fillStyle = "#FF6F00";
+      bufferCtx.fillRect(renderX, renderY + 1, player.width, player.height - 1);
+      bufferCtx.strokeStyle = "#2C1810";
+      bufferCtx.lineWidth = 1;
+      bufferCtx.strokeRect(renderX, renderY + 1, player.width, player.height - 1);
+
+      // 4. 棕色披肩长头发
+      bufferCtx.fillStyle = "#5D4037";
+      bufferCtx.fillRect(renderX, renderY + 1, player.width, 3);
+      bufferCtx.fillRect(renderX - 1, renderY + 3, 2, 5);
+      bufferCtx.fillRect(renderX + player.width - 1, renderY + 3, 2, 5);
+      bufferCtx.fillStyle = "#8D6E63";
+      bufferCtx.fillRect(renderX + 2, renderY + 1, player.width - 4, 1);
+
+      // 5. 🎯 第三段：移动时的像素步幅小双腿动态 (Leg Walking Animation)
+      const legStep = isMoving && Math.sin(frameCount * 0.35) > 0;
+      const leftShoeY = renderY + player.height - (legStep ? 3 : 2);
+      const rightShoeY = renderY + player.height - (legStep ? 2 : 3);
+
+      bufferCtx.fillStyle = "#212121"; // 左小鞋
+      bufferCtx.fillRect(renderX + 1, leftShoeY, 4, 2);
+      bufferCtx.fillRect(renderX + player.width - 5, rightShoeY, 4, 2); // 右小鞋
+
+      // 6. 面部萌眼与腮红
+      bufferCtx.fillStyle = "#FFE0B2";
+      bufferCtx.fillRect(renderX + 2, renderY + 3, 8, 5);
+      bufferCtx.fillStyle = "#FF8A80";
+      bufferCtx.fillRect(renderX + 1, renderY + 6, 2, 2);
+      bufferCtx.fillRect(renderX + 9, renderY + 6, 2, 2);
+
+      bufferCtx.fillStyle = "#FFFFFF";
+      if (player.direction === "down") {
+        bufferCtx.fillRect(renderX + 2, renderY + 4, 3, 3);
+        bufferCtx.fillRect(renderX + 7, renderY + 4, 3, 3);
+        bufferCtx.fillStyle = "#1B1B1B";
+        bufferCtx.fillRect(renderX + 3, renderY + 5, 2, 2);
+        bufferCtx.fillRect(renderX + 8, renderY + 5, 2, 2);
+      } else if (player.direction === "up") {
+        bufferCtx.fillStyle = "#5D4037";
+        bufferCtx.fillRect(renderX, renderY + 3, player.width, 7);
+      } else if (player.direction === "left") {
+        bufferCtx.fillRect(renderX + 1, renderY + 4, 4, 3);
+        bufferCtx.fillStyle = "#1B1B1B";
+        bufferCtx.fillRect(renderX + 1, renderY + 5, 2, 2);
+      } else if (player.direction === "right") {
+        bufferCtx.fillRect(renderX + 7, renderY + 4, 4, 3);
+        bufferCtx.fillStyle = "#1B1B1B";
+        bufferCtx.fillRect(renderX + 9, renderY + 5, 2, 2);
+      }
+    }
+
+    // 🪙 绘制浮动闪烁金币 (Floating Golden Coins)
+    function drawCoin(coin, camX, camY) {
+      const rx = coin.x - camX;
+      const ry = coin.y - camY;
+      if (rx < -16 || rx > 320 || ry < -16 || ry > 180) return;
+
+      const coinFloatY = Math.round(Math.sin(frameCount * 0.15 + coin.id) * 2);
+      const renderY = ry + coinFloatY;
+
+      // 金币旋转高光闪烁
+      const isShine = frameCount % 12 < 6;
+
+      bufferCtx.fillStyle = "rgba(0, 0, 0, 0.25)";
+      bufferCtx.fillRect(rx + 1, ry + 8, 6, 2); // 金币椭圆接地影
+
+      bufferCtx.fillStyle = isShine ? "#FFD54F" : "#FFC107";
+      bufferCtx.fillRect(rx + 1, renderY, 6, 7);
+      bufferCtx.fillStyle = "#FFA000";
+      bufferCtx.strokeRect(rx + 1, renderY, 6, 7);
+
+      bufferCtx.fillStyle = "#FFF9C4"; // 高光发光点
+      bufferCtx.fillRect(rx + 2, renderY + 1, 2, 2);
+    }
+
+    function drawTree(t, camX, camY) {
+      const rx = t.x - camX;
+      const ry = t.y - camY;
+      if (rx < -32 || rx > 320 || ry < -40 || ry > 180) return;
+
+      if (t.type === "pine") {
+        bufferCtx.fillStyle = "#4E342E"; bufferCtx.fillRect(rx + 9, ry + 16, 6, 12);
+        bufferCtx.fillStyle = "#1B5E20"; bufferCtx.fillRect(rx - 3, ry + 16, 30, 6);
+        bufferCtx.fillStyle = "#2E7D32"; bufferCtx.fillRect(rx, ry + 10, 24, 7);
+        bufferCtx.fillStyle = "#43A047"; bufferCtx.fillRect(rx + 3, ry + 4, 18, 7);
+        bufferCtx.fillStyle = "#81C784"; bufferCtx.fillRect(rx + 7, ry - 3, 10, 8);
+      } else if (t.type === "broadleaf") {
+        bufferCtx.fillStyle = "#5D4037"; bufferCtx.fillRect(rx + 9, ry + 14, 6, 14);
+        bufferCtx.fillStyle = "#1B5E20"; bufferCtx.fillRect(rx - 2, ry + 4, 28, 16);
+        bufferCtx.fillStyle = "#2E7D32"; bufferCtx.fillRect(rx + 1, ry + 2, 22, 16);
+        bufferCtx.fillStyle = "#43A047"; bufferCtx.fillRect(rx + 4, ry, 16, 14);
+        bufferCtx.fillStyle = "#A5D6A7"; bufferCtx.fillRect(rx + 6, ry + 1, 6, 3); bufferCtx.fillRect(rx + 14, ry + 3, 4, 3);
+      } else if (t.type === "violet_pine") {
+        bufferCtx.fillStyle = "#311B92"; bufferCtx.fillRect(rx + 9, ry + 16, 6, 12);
+        bufferCtx.fillStyle = "#4A148C"; bufferCtx.fillRect(rx - 3, ry + 16, 30, 6);
+        bufferCtx.fillStyle = "#6A1B9A"; bufferCtx.fillRect(rx, ry + 10, 24, 7);
+        bufferCtx.fillStyle = "#8E24AA"; bufferCtx.fillRect(rx + 3, ry + 4, 18, 7);
+        bufferCtx.fillStyle = "#BA68C8"; bufferCtx.fillRect(rx + 7, ry - 3, 10, 8);
+      } else if (t.type === "shadow_oak") {
+        bufferCtx.fillStyle = "#1A237E"; bufferCtx.fillRect(rx + 9, ry + 14, 6, 14);
+        bufferCtx.fillStyle = "#283593"; bufferCtx.fillRect(rx - 2, ry + 4, 28, 16);
+        bufferCtx.fillStyle = "#37474F"; bufferCtx.fillRect(rx + 1, ry + 2, 22, 16);
+        bufferCtx.fillStyle = "#00838F"; bufferCtx.fillRect(rx + 4, ry, 16, 14);
+        bufferCtx.fillStyle = "#80DEEA"; bufferCtx.fillRect(rx + 6, ry + 1, 6, 3); bufferCtx.fillRect(rx + 14, ry + 3, 4, 3);
+      }
+    }
+
+    function drawPortal(portal, camX, camY) {
+      const rx = portal.x - camX;
+      const ry = portal.y - camY;
+      if (rx < -32 || rx > 320 || ry < -32 || ry > 180) return;
+
+      const pulse = Math.sin(frameCount * 0.1) * 2;
+      const radius = 10 + pulse;
+
+      const pGrad = bufferCtx.createRadialGradient(rx + 8, ry + 8, 2, rx + 8, ry + 8, radius);
+      pGrad.addColorStop(0, "rgba(224, 64, 251, 0.85)");
+      pGrad.addColorStop(0.6, "rgba(156, 39, 176, 0.5)");
+      pGrad.addColorStop(1, "rgba(103, 58, 183, 0)");
+
+      bufferCtx.fillStyle = pGrad;
+      bufferCtx.beginPath();
+      bufferCtx.arc(rx + 8, ry + 8, radius, 0, Math.PI * 2);
+      bufferCtx.fill();
+
+      bufferCtx.strokeStyle = "#E040FB";
+      bufferCtx.lineWidth = 1;
+      bufferCtx.strokeRect(rx + 2, ry + 2, 12, 12);
+      bufferCtx.fillStyle = frameCount % 2 === 0 ? "#80DEEA" : "#EA80FC";
+      bufferCtx.fillRect(rx + 4 + (frameCount % 8), ry + 10 - (frameCount % 10), 2, 2);
+    }
+
+    function drawBuffer() {
+      bufferCtx.clearRect(0, 0, bufferCanvas.width, bufferCanvas.height);
+
+      const camX = Math.round(camera.x);
+      const camY = Math.round(camera.y);
+
+      const activeMap = currentMapIndex === 0 ? map1 : map2;
+      const activeTrees = currentMapIndex === 0 ? trees1 : trees2;
+      const activeProps = currentMapIndex === 0 ? props1 : props2;
+      const activeSpots = currentMapIndex === 0 ? sunSpots1 : moonSpots;
+      const activePortal = currentMapIndex === 0 ? portal1 : portal2;
+
+      const startCol = Math.max(0, Math.floor(camX / TILE_SIZE));
+      const endCol = Math.min(COLS - 1, Math.ceil((camX + 320) / TILE_SIZE));
+      const startRow = Math.max(0, Math.floor(camY / TILE_SIZE));
+      const endRow = Math.min(ROWS - 1, Math.ceil((camY + 180) / TILE_SIZE));
+
+      for (let r = startRow; r <= endRow; r++) {
+        for (let c = startCol; c <= endCol; c++) {
+          const type = activeMap[r][c];
+          const rx = c * TILE_SIZE - camX;
+          const ry = r * TILE_SIZE - camY;
+
+          if (currentMapIndex === 0) {
+            if (type === 0) {
+              const isEven = (r + c) % 2 === 0;
+              bufferCtx.fillStyle = isEven ? "#7CB342" : "#8BC34A";
+              bufferCtx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+              bufferCtx.fillStyle = "#AED581"; bufferCtx.fillRect(rx + 2, ry + 4, 2, 2);
+            } else if (type === 1) {
+              bufferCtx.fillStyle = "#8D6E63"; bufferCtx.fillRect(rx, ry, TILE_SIZE, 4);
+              bufferCtx.fillStyle = "#5D4037"; bufferCtx.fillRect(rx, ry + 4, TILE_SIZE, 12);
+              bufferCtx.fillStyle = "rgba(0, 0, 0, 0.4)"; bufferCtx.fillRect(rx + 15, ry, 1, TILE_SIZE);
+            } else if (type === 2) {
+              bufferCtx.fillStyle = "#78909C"; bufferCtx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+            } else if (type === 3) {
+              bufferCtx.fillStyle = (r + c) % 2 === 0 ? "#D7CCC8" : "#C8B7A6";
+              bufferCtx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+            } else if (type === 4) {
+              bufferCtx.fillStyle = "#4FC3F7"; bufferCtx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+              bufferCtx.fillStyle = "rgba(255, 255, 255, 0.75)";
+              const wave = Math.floor((frameCount * 0.15 + c * 2) % 12);
+              bufferCtx.fillRect(rx + (wave % 10), ry + 3, 4, 1);
+            }
+          } else {
+            if (type === 0) {
+              const isEven = (r + c) % 2 === 0;
+              bufferCtx.fillStyle = isEven ? "#2E4A3E" : "#233B31";
+              bufferCtx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+              bufferCtx.fillStyle = "#00E5FF"; bufferCtx.fillRect(rx + 3, ry + 5, 1, 1);
+            } else if (type === 1) {
+              bufferCtx.fillStyle = "#37474F"; bufferCtx.fillRect(rx, ry, TILE_SIZE, 4);
+              bufferCtx.fillStyle = "#263238"; bufferCtx.fillRect(rx, ry + 4, TILE_SIZE, 12);
+              bufferCtx.fillStyle = "#00E5FF"; bufferCtx.fillRect(rx + 8, ry + 6, 1, 4);
+            } else if (type === 3) {
+              bufferCtx.fillStyle = (r + c) % 2 === 0 ? "#4A148C" : "#311B92";
+              bufferCtx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+              bufferCtx.fillStyle = "#EA80FC"; bufferCtx.fillRect(rx + 4, ry + 4, 2, 2);
+            }
+          }
+        }
+      }
+
+      for (const p of activeProps) {
+        const rx = p.x - camX;
+        const ry = p.y - camY;
+        if (rx < -16 || rx > 320 || ry < -16 || ry > 180) continue;
+
+        if (p.type === "flower_white") {
+          bufferCtx.fillStyle = "#FFFFFF"; bufferCtx.fillRect(rx, ry + 1, 3, 3);
+          bufferCtx.fillStyle = "#FFD54F"; bufferCtx.fillRect(rx + 1, ry + 2, 1, 1);
+        } else if (p.type === "flower_yellow") {
+          bufferCtx.fillStyle = "#FFEE58"; bufferCtx.fillRect(rx, ry + 1, 3, 3);
+        } else if (p.type === "flower_magenta") {
+          bufferCtx.fillStyle = "#E040FB"; bufferCtx.fillRect(rx, ry + 1, 3, 3);
+          bufferCtx.fillStyle = "#00E5FF"; bufferCtx.fillRect(rx + 1, ry + 2, 1, 1);
+        } else if (p.type === "shroom_cyan") {
+          bufferCtx.fillStyle = "#00E5FF"; bufferCtx.fillRect(rx, ry, 3, 2);
+          bufferCtx.fillStyle = "#FFFFFF"; bufferCtx.fillRect(rx + 1, ry + 2, 1, 2);
+        } else if (p.type === "stone" || p.type === "stone_moss") {
+          bufferCtx.fillStyle = p.type === "stone_moss" ? "#455A64" : "#B0BEC5";
+          bufferCtx.fillRect(rx, ry, 4, 3);
+        }
+      }
+
+      // 🪙 绘制未收集的金币
+      for (const coin of coins) {
+        if (coin.mapIndex === currentMapIndex && !coin.collected) {
+          drawCoin(coin, camX, camY);
+        }
+      }
+
+      drawPortal(activePortal, camX, camY);
+
+      // 阳光光斑与大阴影
+      const sunAlpha = 0.20 + Math.sin(frameCount * 0.06) * 0.06;
+      for (const s of activeSpots) {
+        const rx = s.x - camX;
+        const ry = s.y - camY;
+        if (rx < -20 || rx > 340 || ry < -20 || ry > 200) continue;
+
+        const sGrad = bufferCtx.createRadialGradient(rx, ry, 1, rx, ry, s.radius);
+        if (currentMapIndex === 0) {
+          sGrad.addColorStop(0, `rgba(255, 253, 210, ${sunAlpha})`);
+          sGrad.addColorStop(1, "rgba(255, 253, 210, 0)");
+        } else {
+          sGrad.addColorStop(0, `rgba(224, 64, 251, ${sunAlpha})`);
+          sGrad.addColorStop(1, "rgba(224, 64, 251, 0)");
+        }
+        bufferCtx.fillStyle = sGrad;
+        bufferCtx.beginPath();
+        bufferCtx.arc(rx, ry, s.radius, 0, Math.PI * 2);
+        bufferCtx.fill();
+      }
+
+      for (const t of activeTrees) {
+        const rx = t.x - camX;
+        const ry = t.y - camY;
+        if (rx < -32 || rx > 320 || ry < -32 || ry > 180) continue;
+
+        const shadowGrad = bufferCtx.createRadialGradient(rx + 12, ry + 25, 2, rx + 12, ry + 25, 18);
+        shadowGrad.addColorStop(0, "rgba(10, 25, 15, 0.35)");
+        shadowGrad.addColorStop(1, "rgba(10, 25, 15, 0)");
+        bufferCtx.fillStyle = shadowGrad;
+        bufferCtx.beginPath();
+        bufferCtx.ellipse(rx + 12, ry + 25, 18, 7, 0, 0, Math.PI * 2);
+        bufferCtx.fill();
+      }
+
+      if (Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1 || frameCount % 3 === 0) {
+        particles.push({
+          x: player.x + 5 + (Math.random() * 4 - 2),
+          y: player.y + 11 + Math.random() * 2,
+          vx: -player.vx * 0.2 + (Math.random() - 0.5) * 0.3,
+          vy: 0.4 + Math.random() * 0.3 - player.vy * 0.2,
+          life: 12,
+          color: currentMapIndex === 0 ? "#FF6F00" : "#E040FB"
+        });
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      for (const p of particles) {
+        const rx = Math.round(p.x - camX);
+        const ry = Math.round(p.y - camY);
+        bufferCtx.fillStyle = p.color;
+        bufferCtx.fillRect(rx, ry, 2, 2);
+      }
+
+      // 🌲 Y-Sorting 深度排序遮挡绘制
+      const renderEntities = [];
+      const isMoving = Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1;
+      const floatOffsetY = isMoving
+        ? Math.round(Math.sin(frameCount * 0.25) * 1.0)
+        : Math.round(Math.sin(frameCount * 0.10) * 1.5);
+
+      const renderPlayerX = Math.round(player.x - camX);
+      const renderPlayerY = Math.round(player.y - camY) + floatOffsetY;
+
+      renderEntities.push({
+        type: "player",
+        y: player.y + player.height,
+        draw: () => drawAdventurer(renderPlayerX, renderPlayerY, isMoving)
+      });
+
+      for (const t of activeTrees) {
+        renderEntities.push({
+          type: "tree",
+          y: t.y + 24,
+          draw: () => drawTree(t, camX, camY)
+        });
+      }
+
+      renderEntities.sort((a, b) => a.y - b.y);
+      renderEntities.forEach(ent => ent.draw());
+
+      const envGrad = bufferCtx.createRadialGradient(160, 90, 30, 160, 90, 200);
+      if (currentMapIndex === 0) {
+        envGrad.addColorStop(0, "rgba(255, 253, 231, 0.14)");
+        envGrad.addColorStop(1, "rgba(20, 40, 22, 0.20)");
+      } else {
+        envGrad.addColorStop(0, "rgba(224, 64, 251, 0.15)");
+        envGrad.addColorStop(1, "rgba(15, 10, 30, 0.35)");
+      }
+
+      bufferCtx.fillStyle = envGrad;
+      bufferCtx.fillRect(0, 0, bufferCanvas.width, bufferCanvas.height);
+    }
+
+    function renderDisplay() {
+      displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+      displayCtx.drawImage(
+        bufferCanvas,
+        0, 0, bufferCanvas.width, bufferCanvas.height,
+        0, 0, displayCanvas.width, displayCanvas.height
+      );
+    }
+
+    function loop() {
+      frameCount++;
+      updatePhysics(); // 1. 物理计算与金币/传送阵判定
+      updateCamera();  // 2. 摄像机平滑跟随
+      drawBuffer();    // 3. 主画面渲染
+      drawMinimap();   // 4. 小地图 UI 渲染
+      renderDisplay(); // 5. 主画布呈现
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumpa · 法斗工位动作预览</title>
+  <style>
+    :root { font-family: "Microsoft YaHei", "Segoe UI", sans-serif; color: #312b31; background: #f8f3ec; }
+    body { margin: 0; padding: 24px; }
+    main { max-width: 1000px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    p { color: #6a626a; margin: 0 0 18px; line-height: 1.6; }
+    .preview-layout { display: grid; grid-template-columns: minmax(0, 640px) 1fr; gap: 20px; align-items: start; }
+    canvas { display: block; width: 100%; height: auto; border: 1px solid #e8d9ca; border-radius: 18px; background: #fffaf5; image-rendering: pixelated; }
+    aside { display: grid; gap: 16px; }
+    section { padding: 16px; background: #fff; border: 1px solid #e8d9ca; border-radius: 16px; }
+    h2 { margin: 0 0 10px; font-size: 15px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { border: 1px solid #ddc9b6; border-radius: 10px; background: #fffaf5; padding: 9px 12px; color: #3f3434; cursor: pointer; }
+    button:hover, button[aria-pressed="true"] { background: #483a42; color: #fff; border-color: #483a42; }
+    #status { margin-top: 12px; font-size: 13px; color: #685b60; min-height: 20px; }
+    a { color: #745444; }
+    @media (max-width: 800px) { .preview-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>两只法斗 · 工位动作预览</h1>
+    <p>这里调用的是应用现有的逐帧渲染和家具运动逻辑。选择狗狗、场景和动作，检查走路、打滚、跃上桌面及落地。正式功能请在 <a href="/">Lumpa 主界面</a> 的「工位伴读」中体验。</p>
+    <div class="preview-layout">
+      <canvas id="preview-stage" width="480" height="340" aria-label="法斗工位动画场景"></canvas>
+      <aside>
+        <section><h2>宠物</h2><div class="buttons"><button type="button" data-pet="dog_french_fawn" aria-pressed="true">奶油法斗</button><button type="button" data-pet="dog_french_black" aria-pressed="false">黑曜法斗</button></div></section>
+        <section><h2>场景</h2><div class="buttons"><button type="button" data-scene="desk" aria-pressed="true">工位书桌</button><button type="button" data-scene="cattree" aria-pressed="false">猫爬架</button><button type="button" data-scene="clean" aria-pressed="false">地面</button></div></section>
+        <section><h2>动作</h2><div class="buttons"><button type="button" data-action="flow">连续动作：跑步→收脚→嗅闻→鞠躬</button><button type="button" data-action="run">奶油法斗奔跑</button><button type="button" data-action="sniff">低头嗅闻</button><button type="button" data-action="bow">玩耍鞠躬</button><button type="button" data-action="greet">挥爪打招呼</button><button type="button" data-action="walk">走路</button><button type="button" data-action="jump">原地跳</button><button type="button" data-action="roll">打滚</button><button type="button" data-action="stretch">伸懒腰</button><button type="button" data-action="climb">跳上家具</button><button type="button" data-action="down">跳下来</button></div><div id="status" role="status"></div></section>
+        <section><h2>奶油法斗 · 新增日常动作</h2><div class="buttons"><button type="button" data-action="sit">乖乖坐下</button><button type="button" data-action="wag">开心摇尾</button><button type="button" data-action="curious">歪头张望</button><button type="button" data-action="yawn">困困打哈欠</button></div><p>连续动作也会播放以上四种新动作。坐下保持坐姿，切换时先站起；所有新帧共享脚底落点。</p></section>
+      </aside>
+    </div>
+  </main>
+  <script type="module" src="/src/french-bulldog-preview.js"></script>
+</body>
+</html>

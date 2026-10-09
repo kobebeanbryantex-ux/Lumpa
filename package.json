@@ -1,0 +1,29 @@
+{
+  "name": "rabbit-desk-pet",
+  "version": "1.0.8",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "web:dev": "vite --host 127.0.0.1 --port 4173 --strictPort",
+    "web:build": "vite build",
+    "web:verify": "npm run web:build && node scripts/verify-web-build.mjs",
+    "test": "node node_modules/vitest/vitest.mjs run",
+    "test:watch": "node node_modules/vitest/vitest.mjs",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev --config src-tauri/tauri.dev.conf.json",
+    "tauri:build": "tauri build",
+    "tauri:build:rc": "tauri build --bundles nsis --config src-tauri/tauri.rc.conf.json"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2",
+    "jsdom": "^26.1.0",
+    "vite": "^7.2.6",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "phaser": "^4.1.0",
+    "three": "^0.185.1"
+  }
+}

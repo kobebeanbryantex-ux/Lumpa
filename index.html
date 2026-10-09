@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lumpa</title>
+    <link rel="stylesheet" href="src/styles.css?v=create-settings-20260528" />
+    <link rel="stylesheet" href="src/lumpa1.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-topbar" id="appTopbar">
+        <div class="brand-lockup" aria-label="Lumpa">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="assets/app-icon.png" alt="" />
+          </span>
+          <div>
+            <strong>Lumpa</strong>
+            <small>Desktop companion</small>
+          </div>
+        </div>
+
+        <nav class="page-tabs" aria-label="页面切换">
+          <button class="page-tab active" type="button" data-page-target="desk">桌宠</button>
+          <button class="page-tab" type="button" data-page-target="world">小世界</button>
+          <button class="page-tab" type="button" data-page-target="focus">工位伴读</button>
+          <button class="page-tab" type="button" data-page-target="library">宠物库</button>
+          <button class="page-tab" type="button" data-page-target="usage">使用统计</button>
+          <button class="page-tab" type="button" data-page-target="create">创建桌宠</button>
+          <button class="page-tab" type="button" data-page-target="settings">设置</button>
+        </nav>
+
+        <div class="top-actions">
+          <span class="voice-dot" id="voiceDot" aria-hidden="true"></span>
+          <button class="secondary-button mini-toggle" id="miniToggle" type="button">浮窗</button>
+          <button class="secondary-button settings-toggle" id="settingsToggle" type="button">设置</button>
+        </div>
+      </header>
+
+      <main class="workspace" id="workspace">
+        <section class="page-view desk-view active" data-page-view="desk" aria-label="桌宠会话台">
+          <section class="pet-dock" id="petDock" aria-label="Lumpa 桌宠">
+            <button class="icon-button dock-button" id="compactToggle" type="button" aria-label="切换桌宠模式">
+              <span aria-hidden="true">◐</span>
+            </button>
+
+            <div class="floating-tools" id="floatingTools" aria-label="浮窗工具">
+              <button class="floating-tool-button drag-tool" id="floatDrag" type="button" title="拖动" aria-label="拖动浮窗">
+                <span aria-hidden="true">::</span>
+              </button>
+              <button class="floating-tool-button lock-tool" id="floatLock" type="button" title="锁定位置" aria-label="锁定位置">
+                <span aria-hidden="true">锁</span>
+              </button>
+              <button class="floating-tool-button talk-tool" id="floatTalk" type="button" title="说话" aria-label="和桌宠说话">
+                <span aria-hidden="true">说</span>
+              </button>
+              <button class="floating-tool-button action-tool" id="floatAction" onclick="window.triggerPetAction('action')" type="button" title="动作" aria-label="播放桌宠动作">
+                <span aria-hidden="true">动</span>
+              </button>
+              <button class="floating-tool-button feed-tool" id="floatFeed" onclick="window.triggerPetAction('feed')" type="button" title="喂食" aria-label="喂食">
+                <span aria-hidden="true">食</span>
+              </button>
+              <button class="floating-tool-button demo-tool" id="floatDemo" onclick="window.open('pixel_pet_demo.html', '_blank')" type="button" title="打开 2D 自由像素宠物游戏 Demo" aria-label="打开Demo">
+                <span aria-hidden="true">🎮</span>
+              </button>
+              <button class="floating-tool-button" id="floatExpand" type="button" title="展开" aria-label="展开窗口">
+                <span aria-hidden="true">□</span>
+              </button>
+              <button class="floating-tool-button close-tool" id="floatClose" type="button" title="关闭" aria-label="关闭窗口">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+
+            <form class="floating-composer hidden" id="floatingComposer" aria-label="浮窗对话">
+              <input id="floatingInput" name="floatingChat" autocomplete="off" placeholder="和它说一句" />
+              <button type="submit">发送</button>
+            </form>
+
+            <div class="action-menu floating-action-menu hidden" id="floatingActionMenu" aria-label="浮窗动作菜单"></div>
+            <div class="feed-menu floating-feed-menu hidden" id="floatingFeedMenu" aria-label="浮窗喂食菜单"></div>
+
+            <!-- 右键打开的每日待办：任务奖励与番茄成长分别结算 -->
+            <div class="pet-floating-context-menu hidden" id="floatingPetContextMenu" role="dialog" aria-label="今日待办">
+              <div class="pet-todo-header">
+                <div>
+                  <strong>今日待办</strong>
+                  <span id="floatingTodoDate">今天</span>
+                </div>
+                <button class="pet-todo-close" id="floatingTodoClose" type="button" aria-label="关闭">×</button>
+              </div>
+              <form class="pet-todo-form" id="floatingTodoForm">
+                <input id="floatingTodoInput" maxlength="100" autocomplete="off" placeholder="写下这次要完成的事…" aria-label="新增待办" />
+                <button type="submit">添加</button>
+              </form>
+              <div class="pet-todo-rule">
+                <span>✓ 完成任务得礼物</span>
+                <span>⏱ 到时猫咪长大</span>
+              </div>
+              <div class="pet-todo-list" id="floatingTodoList" aria-live="polite"></div>
+              <div class="pet-todo-empty" id="floatingTodoEmpty">还没有待办，先写下一个小目标吧。</div>
+              <div class="pet-todo-footer">
+                <div>
+                  <strong id="floatingTodoProgress">0 / 0 已完成</strong>
+                  <span id="floatingPetGrowth">幼崽 · 0 次番茄</span>
+                </div>
+                <button id="floatingTodoOpenFocus" type="button">去番茄钟</button>
+              </div>
+            </div>
+
+            <!-- 浮窗饱食与水分状态顶条 -->
+            <div class="pet-floating-vitals hidden" id="floatingPetVitals">
+              <div class="vitals-bar-wrap">
+                <span class="vitals-icon">🥖</span>
+                <div class="vitals-track"><div class="vitals-fill-food" id="floatingFoodFill" style="width: 88%;"></div></div>
+              </div>
+              <div class="vitals-bar-wrap">
+                <span class="vitals-icon">💧</span>
+                <div class="vitals-track"><div class="vitals-fill-water" id="floatingWaterFill" style="width: 82%;"></div></div>
+              </div>
+            </div>
+
+            <div class="speech-bubble" id="speechBubble">今天也在桌面陪你。</div>
+            <div class="floating-subtitle hidden" id="floatingSubtitle"></div>
+            <div class="pet-stage" id="petStage">
+              <canvas class="pet-floating-canvas" id="petFloatingCanvas" width="320" height="300"></canvas>
+              <canvas class="pet-floating-canvas hidden" id="petSkeletonCanvas" width="320" height="300"></canvas>
+              <div class="pet-renderer" id="petRenderer" aria-hidden="true"></div>
+              <img
+                class="rabbit"
+                id="rabbitImage"
+                style="display: none"
+                src="assets/pixel_companions_v5/frames/dog_french_fawn_idle_0.png"
+                alt="奶油法斗加载中"
+                draggable="false"
+              />
+              <div class="heart-layer" id="heartLayer" aria-hidden="true"></div>
+              <div class="pet-shadow" aria-hidden="true"></div>
+            </div>
+            <div class="fullness-meter" id="fullnessMeter" aria-label="饱腹度">
+              <span>饱腹</span>
+              <i><b id="fullnessFill"></b></i>
+              <strong id="fullnessText">100%</strong>
+            </div>
+            <div class="status-pill" id="statusPill">待机</div>
+          </section>
+
+          <aside class="chat-panel" id="chatPanel" aria-label="对话面板">
+            <header class="panel-header">
+              <div>
+                <p class="eyebrow">Lumpa</p>
+                <h1 id="petTitle">Lumpa 会话台</h1>
+              </div>
+              <div class="active-pet-mini">
+                <span class="active-pet-avatar" id="activePetAvatar">宠</span>
+                <div>
+                  <strong id="activePetName">棉棉</strong>
+                  <small id="activePetMeta">温柔陪伴型</small>
+                </div>
+              </div>
+            </header>
+
+            <div class="messages" id="messages" aria-live="polite">
+              <article class="message pet-message">
+                <span>我准备好了。给我一句话，我就开口。</span>
+              </article>
+            </div>
+
+            <section class="memory-suggestion hidden" id="memorySuggestion" aria-label="记忆确认">
+              <div>
+                <strong>要记住这条吗？</strong>
+                <small>只会保存到当前桌宠，之后可以在宠物库里编辑或删除。</small>
+              </div>
+              <div class="memory-suggestion-row">
+                <select id="memorySuggestionCategory" aria-label="记忆类型">
+                  <option value="nickname">称呼</option>
+                  <option value="preference">偏好</option>
+                  <option value="task">任务</option>
+                  <option value="note">备注</option>
+                </select>
+                <textarea id="memorySuggestionText" rows="2" aria-label="记忆内容"></textarea>
+              </div>
+              <div class="memory-suggestion-actions">
+                <button class="secondary-button" id="dismissMemory" type="button">忽略</button>
+                <button class="send-button" id="confirmMemory" type="button">记住</button>
+              </div>
+            </section>
+
+            <form class="composer" id="composer">
+              <input id="chatInput" name="chat" autocomplete="off" placeholder="和桌宠说点什么" />
+              <button class="send-button" type="submit">发送</button>
+            </form>
+
+            <div class="quick-actions" aria-label="快捷操作">
+              <button type="button" data-line="帮我打个招呼" data-action="wave">打招呼</button>
+              <button type="button" data-line="用可爱的语气鼓励我一下">鼓励</button>
+              <button type="button" data-line="提醒我先喝一口水">提醒</button>
+              <button type="button" id="feedMenuToggle" onclick="window.triggerPetAction('feed')">喂食</button>
+              <button type="button" id="actionMenuToggle" onclick="window.triggerPetAction('action')">动作</button>
+            </div>
+
+            <div class="action-menu chat-action-menu hidden" id="actionMenu" aria-label="动作菜单"></div>
+            <div class="feed-menu chat-feed-menu hidden" id="feedMenu" aria-label="喂食菜单"></div>
+
+            <div class="history-actions" aria-label="聊天记录">
+              <button class="secondary-button" id="exportChatHistory" type="button">导出聊天</button>
+              <button class="secondary-button" id="clearChatHistory" type="button">清空聊天</button>
+            </div>
+
+            <div class="audio-tools">
+              <button class="secondary-button" id="demoVoice" type="button">试听嘴型</button>
+              <label class="secondary-button file-button" for="audioFile">导入音频</label>
+              <input id="audioFile" type="file" accept="audio/*" />
+              <button class="icon-button" id="stopVoice" type="button" aria-label="停止">
+                <span aria-hidden="true">■</span>
+              </button>
+            </div>
+          </aside>
+        </section>
+
+        <section class="page-view world-view" data-page-view="world" aria-label="像素小世界">
+          <div class="pixel-world-container" id="pixelWorldContainer">
+            <!-- 🖥️ 主游戏画布 -->
+            <canvas id="worldCanvas" width="960" height="540" tabindex="0"></canvas>
+
+            <!-- 📍 迷你小地图 (Minimap UI) 独立浮层 -->
+            <div class="minimap-wrapper">
+              <div class="minimap-title" id="worldMapNameTag">📍 晴空阳关森林</div>
+              <canvas id="worldMinimapCanvas" width="80" height="50"></canvas>
+            </div>
+
+            <!-- 🪙 右上角 HUD UI: 金币计数器与 BGM 控制与桌宠 Tag -->
+            <div class="hud-top-right">
+              <div class="world-pet-pill" id="worldPetTag">操控中：白兔棉棉</div>
+              <div class="coin-counter">🪙 金币: <span id="worldCoinCount">0</span> / 20</div>
+              <button class="bgm-btn" id="worldBgmBtn" type="button">🎵 BGM: 开启</button>
+            </div>
+
+            <!-- 🎉 通关胜利弹窗 (Victory Overlay) -->
+            <div class="victory-overlay" id="worldVictoryOverlay">
+              <div class="victory-title">🎉 恭喜通关！</div>
+              <div class="victory-subtitle">您已成功收集森林中的全部 20 个神秘金币！</div>
+              <button class="restart-btn" id="worldRestartBtn" type="button">再次游玩</button>
+            </div>
+
+            <div class="focus-tip">按 W/A/S/D 移动角色，寻找两张地图散落的 20 个金币！</div>
+          </div>
+        </section>
+
+        <!-- ☕ 全新独立功能模块：工位伴读 · 专注同桌 -->
+        <section class="page-view focus-view" data-page-view="focus" aria-label="工位伴读">
+          <div class="focus-container" id="focusContainer">
+            <!-- 顶部控制条 -->
+            <header class="focus-header">
+              <div class="focus-header-left">
+                <span class="focus-header-badge">工位伴读</span>
+                <div class="duration-chips" id="durationChips" role="radiogroup" aria-label="专注时长">
+                  <button class="duration-chip" type="button" data-duration="15">15分钟</button>
+                  <button class="duration-chip active" type="button" data-duration="25">25m 番茄</button>
+                  <button class="duration-chip" type="button" data-duration="45">45分钟</button>
+                  <button class="duration-chip" type="button" data-duration="60">60分钟</button>
+                </div>
+              </div>
+              <div class="focus-header-right">
+                <div class="ambient-sound-selector">
+                  <label for="ambientSoundSelect">🎵 白噪音:</label>
+                  <select id="ambientSoundSelect">
+                    <option value="rain">🌧️ 窗外细雨</option>
+                    <option value="fire">🔥 壁炉柴火</option>
+                    <option value="none">🔇 静音专注</option>
+                  </select>
+                </div>
+                <div class="pet-audio-import">
+                  <label class="sr-only" for="focusAudioSlot">宠物音效类型</label>
+                  <select id="focusAudioSlot" title="选择要导入的宠物音效类型">
+                    <option value="cat.gentle">🐱 温柔猫叫（3条）</option>
+                    <option value="cat.curious">🐱 好奇猫叫（2条）</option>
+                    <option value="cat.alert">🐱 警觉猫叫（2条）</option>
+                    <option value="cat.purr">🐱 呼噜声（2条）</option>
+                    <option value="cat.whine">🐱 委屈猫叫（2条）</option>
+                    <option value="cat.pounce">🐱 扑跳短叫（1条）</option>
+                    <option value="cat.stretch">🐱 伸懒腰（1条）</option>
+                    <option value="cat.yawn">🐱 困倦轻声（1条）</option>
+                    <option value="fox.gentle">🦊 温柔狐狸叫（2条）</option>
+                    <option value="fox.curious">🦊 好奇狐狸叫（2条）</option>
+                    <option value="fox.alert">🦊 警觉狐狸叫（2条）</option>
+                    <option value="wolf.gentle">🐺 狼崽轻声（2条）</option>
+                    <option value="wolf.curious">🐺 狼崽好奇声（2条）</option>
+                    <option value="wolf.alert">🐺 狼崽提醒声（2条）</option>
+                  </select>
+                  <button class="secondary-button pet-audio-import-btn" id="focusAudioImportBtn" type="button" title="选择音频并导入到当前类型">＋ 导入音效</button>
+                </div>
+                <button class="secondary-button" onclick="window.open('pixel_pet_demo.html', '_blank')" type="button" style="padding: 4px 10px; font-size: 12px; margin-right: 6px;" title="打开 2D 自由像素宠物游戏 Demo">🎮 自由宠物Demo</button>
+                <button class="focus-audio-btn" id="focusMuteBtn" type="button" title="切换声音">🔊</button>
+              </div>
+            </header>
+
+            <!-- 核心交互区 -->
+            <div class="focus-main-grid">
+              <!-- 左侧：手绘工位主舞台 -->
+              <div class="focus-stage-card">
+                <div class="focus-timer-hud">
+                  <div class="focus-timer-text" id="focusTimerDisplay">25:00</div>
+                  <div class="focus-status-tag" id="focusStatusTag">等待入座陪读</div>
+                  <div class="focus-progress-wrapper">
+                    <div class="focus-progress-fill" id="focusProgressBar"></div>
+                  </div>
+                  <div class="focus-todo-summary" id="focusTodoSummary">今日暂无待办 · 右键桌宠即可添加</div>
+                </div>
+
+                <div class="focus-stage-canvas-wrapper">
+                  <canvas id="focusStageCanvas" width="480" height="340"></canvas>
+                  <!-- 防摸鱼气泡提醒 -->
+                  <div class="focus-bubble hidden" id="focusBubble">……某人是不是在偷偷摸鱼呀？(推眼镜盯)</div>
+                </div>
+
+                <!-- 工位场景布置切换栏 (Scene Switcher Bar) -->
+                <div class="focus-scene-bar" id="focusSceneBar">
+                  <span class="focus-scene-label">🏠 工位场景切换：</span>
+                  <div class="focus-scene-chips" id="focusSceneChips">
+                    <button class="scene-chip active" data-scene="desk" type="button">🖥️ 工位小书桌</button>
+                    <button class="scene-chip" data-scene="cattree" type="button">🌳 猫爬架台子</button>
+                    <button class="scene-chip" data-scene="bed" type="button">🛏️ 温馨猫窝</button>
+                    <button class="scene-chip" data-scene="clean" type="button">🍃 极简纯净</button>
+                  </div>
+                </div>
+
+                <!-- 游戏级交互与行为演练栏 (Game Actions Demo Bar) -->
+                <div class="focus-game-demo-bar" id="focusGameDemoBar">
+                  <div class="demo-bar-title">🎮 动作指令 Demo：</div>
+                  <div class="demo-btn-group">
+                    <button class="demo-action-btn" id="demoBtnClimb" type="button" title="抛物线蓄力跃上小木桌">🐾 爬上桌子</button>
+                    <button class="demo-action-btn" id="demoBtnLieDesk" type="button" title="伏在木桌上下沉闭目养神">🍞 趴桌打盹</button>
+                    <button class="demo-action-btn" id="demoBtnCatTree" type="button" title="跃上剑麻猫爬架瞭望">🌳 跃上爬架</button>
+                    <button class="demo-action-btn" id="demoBtnStretch" type="button" title="胸口下压+弓背+抖毛60帧丝滑伸懒腰">🐈 猫式伸懒腰</button>
+                    <button class="demo-action-btn" id="demoBtnWalk" type="button" title="轻巧小猫步自由漫步溜达">🚶 自由漫步</button>
+                    <button class="demo-action-btn" id="demoBtnLook" type="button" title="歪头眨眼好奇探视">👀 歪头张望</button>
+                    <button class="demo-action-btn" id="demoBtnWash" type="button" title="举起软爪抹胡须洗脸">🐾 举爪洗脸</button>
+                    <button class="demo-action-btn" id="demoBtnPounce" type="button" title="小屁股蓄力轻摇猛扑">🐾 摇臀猛扑</button>
+                    <button class="demo-action-btn" id="demoBtnRoll" type="button" title="翻肚皮抱毛线球打滚">🧶 翻滚打逗</button>
+                    <button class="demo-action-btn" id="demoBtnJumpDown" type="button" title="肉垫轻巧跃下桌面">🐾 轻巧跳下</button>
+                    <button class="demo-action-btn" id="demoBtnNap" type="button" title="两爪揣起打小瞌睡">💤 窝里打盹</button>
+                    <button class="demo-action-btn toggle-active" id="demoBtnAuto" type="button" title="切换全自主自由活动与智能决策">🤖 自主生活: 开</button>
+                  </div>
+                </div>
+
+                <div class="focus-stage-actions">
+                  <button class="focus-primary-btn" id="focusStartBtn" type="button">开始入座伴读</button>
+                  <button class="focus-abandon-btn hidden" id="focusAbandonBtn" type="button">放弃伴读</button>
+                </div>
+              </div>
+
+              <!-- 右侧：宠物图鉴 / 兑换所 / 礼物图鉴 / 中断垃圾堆 -->
+              <div class="focus-sidebar-card">
+                <div class="focus-subtabs">
+                  <button class="focus-subtab active" type="button" data-focus-tab="wardrobe">🐾 宠物图鉴</button>
+                  <button class="focus-subtab" type="button" data-focus-tab="shop">🧶 礼物兑换所</button>
+                  <button class="focus-subtab" type="button" data-focus-tab="album">🎁 礼物图鉴</button>
+                  <button class="focus-subtab" type="button" data-focus-tab="trash">🗑️ 中断垃圾堆</button>
+                </div>
+
+                <!-- 1. 宠物图鉴：当前版本只开放完整宠物模型 -->
+                <div class="focus-panel-view active" id="focusWardrobePanel">
+                  <div class="wardrobe-section-title">🐾 选择同桌小伴侣</div>
+                  <div class="pet-style-scope-note">
+                    <strong>当前版本只开放完整宠物样式。</strong>
+                    帽子、衣服和面饰等单件穿戴暂不开放，避免动作中出现贴图错位；<span id="petUnlockModeNote">宠物解锁状态加载中…</span>
+                  </div>
+                  <div class="pet-archetype-grid" id="petArchetypeGrid"></div>
+                </div>
+
+                <!-- 2. 礼物兑换所 -->
+                <div class="focus-panel-view" id="focusShopPanel">
+                  <div class="pet-style-scope-note compact">
+                    <strong>兑换所当前只上架完整宠物模型。</strong> 每只宠物都有自己的完整外观与动作资源，不再叠加帽子或衣服贴图。<span id="shopUnlockModeNote">宠物解锁状态加载中…</span>
+                  </div>
+                  <div class="shop-backpack-summary" id="shopBackpackSummary"></div>
+                  <div class="shop-goods-list" id="shopGoodsList"></div>
+                </div>
+
+                <!-- 3. 礼物图鉴册 -->
+                <div class="focus-panel-view" id="focusAlbumPanel">
+                  <div class="album-stats-banner">
+                    <div>已收集信物: <strong id="albumCollectedCount">0</strong> / 10 种</div>
+                    <div>累计专注: <strong id="albumFocusHours">0</strong> 小时</div>
+                  </div>
+                  <div class="album-cards-grid" id="albumCardsGrid"></div>
+                </div>
+
+                <!-- 4. 提前中断留下的残留物收藏 -->
+                <div class="focus-panel-view" id="focusTrashPanel">
+                  <div class="trash-stats-banner">
+                    <div>累计残留：<strong id="trashCollectedTotal">0</strong> 件</div>
+                    <div>已发现：<strong id="trashCollectedKinds">0</strong> / 8 种</div>
+                  </div>
+                  <div class="trash-pile-stage">
+                    <div class="trash-pile-heading">每次提前关掉计时，都会在这里留下一点痕迹</div>
+                    <div class="trash-pile-visual" id="trashPileVisual" aria-label="中断垃圾堆叠展示"></div>
+                  </div>
+                  <div class="trash-cards-grid" id="trashCardsGrid"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 专注成功拍立得礼物卡弹窗 -->
+            <div class="focus-modal-backdrop hidden" id="focusSuccessModal">
+              <div class="focus-polaroid-card">
+                <div class="polaroid-pin">📌</div>
+                <div class="polaroid-header">🎉 伴读圆满完成！</div>
+                <div class="polaroid-icon" id="successGiftIcon">🌰</div>
+                <div class="polaroid-title" id="successGiftName">脆香小松果</div>
+                <div class="polaroid-rarity" id="successGiftRarity">日常信物</div>
+                <p class="polaroid-quote" id="successGiftQuote">“在工位旁窗外的橡树下找到的，闻起来满是午后暖阳的味道。”</p>
+                <button class="polaroid-confirm-btn" id="successConfirmBtn" type="button">收进背包，休息片刻</button>
+              </div>
+            </div>
+
+            <!-- 中途放弃委屈残留物弹窗 -->
+            <div class="focus-modal-backdrop hidden" id="focusAbandonModal">
+              <div class="focus-polaroid-card abandon-card">
+                <div class="polaroid-pin">🌧️</div>
+                <div class="polaroid-header">今天……没有陪成吗？</div>
+                <div class="polaroid-icon" id="abandonTrashIcon">📄</div>
+                <div class="polaroid-title" id="abandonTrashName">皱巴巴的便签草稿纸</div>
+                <p class="polaroid-quote" id="abandonTrashQuote">“上面写着‘我这次一定专心’……但刚写了几个字就被揉成了小团。不过没关系，等你想好了我们随时再开始。”</p>
+                <button class="polaroid-confirm-btn" id="abandonConfirmBtn" type="button">抱抱它，重新调整</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-view library-view" data-page-view="library" aria-label="宠物库">
+          <section class="home-panel library-panel" id="homePanel" aria-label="宠物库">
+            <header class="home-header">
+              <div>
+                <p class="eyebrow">Pet Library</p>
+                <h1>我的桌宠</h1>
+              </div>
+              <span class="pet-count" id="petCount">0</span>
+            </header>
+
+            <div class="library-intro">
+              <p>保存不同宠物形象、性格和声音配置，左边切换宠物，右边单独调整它的专属设置。</p>
+              <button class="send-button" type="button" data-page-target="create">创建新的</button>
+            </div>
+
+            <div class="library-layout">
+              <aside class="pet-library-sidebar" aria-label="桌宠列表">
+                <div class="pet-list" id="petList"></div>
+              </aside>
+
+              <section class="pet-detail-panel" aria-label="当前桌宠信息和设置">
+                <section class="pet-info-panel" id="petInfoPanel" aria-label="当前宠物信息栏">
+                  <header class="pet-info-header">
+                    <div>
+                      <p class="eyebrow">Pet Profile</p>
+                      <h2 id="petInfoName">当前宠物</h2>
+                      <small id="petInfoMeta">设定与状态</small>
+                    </div>
+                    <button class="secondary-button compact-action" id="openPetSettings" type="button">设置</button>
+                  </header>
+
+                  <div class="pet-info-hero">
+                    <div class="pet-info-avatar" id="petInfoAvatar">宠</div>
+                    <div class="pet-info-copy">
+                      <strong id="petInfoTitle">桌宠设定</strong>
+                      <p id="petInfoPersona">这里会显示当前桌宠的设定。</p>
+                    </div>
+                  </div>
+
+                  <section class="pet-status-grid" aria-label="宠物状态">
+                    <article class="pet-status-card">
+                      <span>饱腹度</span>
+                      <div class="pet-status-main">
+                        <strong id="petInfoFullness">100%</strong>
+                        <button class="secondary-button compact-action" id="libraryFeedToggle" type="button">喂食</button>
+                      </div>
+                      <i class="pet-info-fullness-bar"><b id="petInfoFullnessFill"></b></i>
+                      <div class="feed-menu library-feed-menu hidden" id="libraryFeedMenu" aria-label="宠物库喂食菜单"></div>
+                    </article>
+                    <article class="pet-status-card">
+                      <span>动作</span>
+                      <strong id="petInfoActions">0 个</strong>
+                      <small>自定义动作与完整帧</small>
+                    </article>
+                    <article class="pet-status-card">
+                      <span>记忆</span>
+                      <strong id="petInfoMemory">0 条</strong>
+                      <small id="petInfoMemoryState">记忆关闭</small>
+                    </article>
+                    <article class="pet-status-card">
+                      <span>投喂</span>
+                      <strong id="petInfoFeedCount">0 次</strong>
+                      <small id="petInfoFavoriteFood">还没有偏爱的食物</small>
+                    </article>
+                  </section>
+
+                  <section class="pet-info-section">
+                    <h3>当前设定</h3>
+                    <p id="petInfoPreset">温柔陪伴。</p>
+                  </section>
+                </section>
+
+                <section class="settings-column library-pet-settings hidden" id="petSettingsPanel">
+                  <div class="settings-column-title">
+                    <span>宠</span>
+                    <div>
+                      <strong>当前桌宠设置</strong>
+                      <small>声音、显示和性格只跟随左侧选中的桌宠</small>
+                    </div>
+                    <button class="secondary-button compact-action pet-settings-back" id="backToPetInfo" type="button">返回信息</button>
+                  </div>
+
+                  <label class="settings-field settings-field-wide">
+                    <span>桌宠名字</span>
+                    <input id="activePetNameInput" type="text" maxlength="40" autocomplete="off" placeholder="例如：棉棉" />
+                  </label>
+
+                  <label class="settings-field">
+                    <span>语音 API Key</span>
+                    <input id="settingsTtsApiKey" type="password" autocomplete="off" placeholder="填写自己的语音 Key，或登录 Lumpa 账号" />
+                  </label>
+
+                  <label class="settings-field">
+                    <span>语音 API 地址</span>
+                    <select id="settingsTtsApiBase">
+                      <option value="https://api.xiaomimimo.com/v1">小米 MiMo</option>
+                      <option value="https://generativelanguage.googleapis.com/v1beta">Gemini TTS</option>
+                      <option value="https://api.openai.com/v1">OpenAI</option>
+                    </select>
+                  </label>
+
+                  <label class="settings-field">
+                    <span>语音模型预设</span>
+                    <select id="ttsModelPreset">
+                      <option value="mimo-default">MiMo V2.5 TTS · 预置音色</option>
+                      <option value="mimo-text2voice">MiMo V2.5 TTS · 文本设计音色</option>
+                      <option value="mimo-voiceclone">MiMo V2.5 TTS · 音色克隆</option>
+                      <option value="gemini-tts">Gemini TTS</option>
+                      <option value="openai-compatible">OpenAI 兼容 TTS</option>
+                      <option value="custom">手动填写</option>
+                    </select>
+                  </label>
+
+                  <label class="settings-field">
+                    <span>语音模型</span>
+                    <input id="settingsTtsModel" type="text" autocomplete="off" />
+                  </label>
+
+                  <label class="settings-field">
+                    <span>音色</span>
+                    <input id="settingsTtsVoice" type="text" autocomplete="off" />
+                  </label>
+
+                  <section class="voice-clone-panel settings-field-wide" aria-label="参考音频克隆音色">
+                    <div class="voice-clone-header">
+                      <div>
+                        <strong>参考音频生成音色</strong>
+                        <small>上传 8-10 秒清晰单人音频，生成后会自动写入当前桌宠音色</small>
+                      </div>
+                      <button class="secondary-button compact-action" id="uploadVoiceClone" type="button">生成音色</button>
+                    </div>
+
+                    <div class="voice-clone-grid">
+                      <label class="settings-field">
+                        <span>参考音频</span>
+                        <input id="voiceCloneFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.webm" />
+                      </label>
+
+                      <label class="settings-field">
+                        <span>音色英文名</span>
+                        <input id="voiceCloneName" type="text" autocomplete="off" placeholder="mianmian-voice" />
+                      </label>
+
+                      <label class="settings-field settings-field-wide">
+                        <span>音频文字</span>
+                        <textarea
+                          id="voiceCloneText"
+                          rows="3"
+                          placeholder="逐字写下参考音频里说的话。文字越匹配，音色越稳。"
+                        ></textarea>
+                      </label>
+                    </div>
+
+                  <p class="voice-clone-status" id="voiceCloneStatus">
+                    生成的 speech:... 音色会保存在当前桌宠，不会写死进代码。
+                  </p>
+                </section>
+
+                  <section class="pet-action-panel settings-field-wide" aria-label="当前桌宠动作">
+                  <div class="pet-action-header">
+                    <div>
+                      <strong>当前桌宠动作</strong>
+                      <small>动作保存在当前选中的桌宠里，旧宠物也可以继续添加。</small>
+                    </div>
+                    <span class="pet-action-count" id="petActionCount">0 个动作</span>
+                  </div>
+
+                  <div class="pet-action-list" id="petActionList" aria-label="当前桌宠动作列表"></div>
+
+                  <section class="gif-action-panel pet-gif-action-panel" aria-label="给当前桌宠上传 GIF 动作">
+                    <div class="gif-action-copy">
+                      <strong>上传 GIF 动作</strong>
+                      <small id="petGifActionStatus">本地拆帧，不调用外部 API。复杂背景会作为带背景动作保存。</small>
+                    </div>
+                    <label class="settings-field">
+                      <span>动作名称</span>
+                      <input id="petGifActionName" type="text" autocomplete="off" placeholder="例如：开心摇摆" />
+                    </label>
+                    <label class="settings-field">
+                      <span>动作类型</span>
+                      <select id="petGifActionType">
+                        <option value="happy">开心</option>
+                        <option value="wave">打招呼</option>
+                        <option value="sleep">睡觉</option>
+                        <option value="idle">待机</option>
+                        <option value="talk">说话装饰动作</option>
+                        <option value="custom">自定义</option>
+                      </select>
+                    </label>
+                    <label class="secondary-button compact-action file-button">
+                      上传 GIF
+                      <input id="petGifActionInput" type="file" accept="image/gif" />
+                    </label>
+                  </section>
+
+                  <section class="video-action-generator pet-video-action-generator" aria-label="给当前桌宠生成视频动作">
+                    <div class="video-action-copy">
+                      <strong>AI 视频生成动作</strong>
+                      <small>用当前桌宠形象作为参考，调用中转站 grok-imagine-video，返回后本地抽帧。</small>
+                    </div>
+                    <label class="settings-field">
+                      <span>动作描述</span>
+                      <textarea id="petVideoActionPrompt" rows="3" placeholder="例如：原地开心地左右摇摆，两只手轻轻挥动，动作自然可循环。"></textarea>
+                    </label>
+                    <div class="video-action-grid">
+                      <label class="settings-field">
+                        <span>动作名称</span>
+                        <input id="petVideoActionName" type="text" autocomplete="off" placeholder="例如：开心摇摆" />
+                      </label>
+                      <label class="settings-field">
+                        <span>动作类型</span>
+                        <select id="petVideoActionType">
+                          <option value="happy">开心</option>
+                          <option value="wave">打招呼</option>
+                          <option value="sleep">睡觉</option>
+                          <option value="idle">待机</option>
+                          <option value="talk">说话装饰动作</option>
+                          <option value="custom">自定义</option>
+                        </select>
+                      </label>
+                      <button class="secondary-button compact-action" id="generatePetVideoAction" type="button">生成动作</button>
+                    </div>
+                    <div class="video-action-preview hidden" id="petVideoActionPreview" aria-label="当前桌宠视频动作预览"></div>
+                    <p class="asset-generator-status" id="petActionStatus">可以上传 GIF，或描述动作后直接给当前桌宠生成。</p>
+                  </section>
+                </section>
+
+                  <section class="pet-sick-panel settings-field-wide" aria-label="当前桌宠生病立绘">
+                    <div class="pet-sick-copy">
+                      <strong>监督状态立绘</strong>
+                      <small>监督规则触发时显示。以当前宠物形象为参考，生成叼着卡通温度计、表情难受的完整立绘。</small>
+                    </div>
+                    <div class="pet-sick-preview" id="petSickPreview">
+                      <span>尚未生成</span>
+                    </div>
+                    <div class="pet-sick-actions">
+                      <button class="secondary-button compact-action" id="generatePetSickImage" type="button">生成生病立绘</button>
+                      <p class="asset-generator-status" id="petSickStatus">每只宠物独立保存，可以随时重新生成。</p>
+                    </div>
+                  </section>
+
+                  <label class="settings-field">
+                    <span>语速 <output id="settingsSpeedValue">1.05</output></span>
+                    <input id="settingsTtsSpeed" type="range" min="0.5" max="2" step="0.05" />
+                  </label>
+
+                  <label class="settings-field">
+                    <span>桌宠大小 <output id="petScaleValue">100%</output></span>
+                    <input id="petScaleInput" type="range" min="65" max="145" step="5" />
+                  </label>
+
+                  <label class="settings-field">
+                    <span>上下位置 <output id="petOffsetYValue">0px</output></span>
+                    <input id="petOffsetYInput" type="range" min="-160" max="160" step="5" />
+                  </label>
+
+                  <label class="settings-field">
+                    <span>透明度 <output id="petOpacityValue">100%</output></span>
+                    <input id="petOpacityInput" type="range" min="35" max="100" step="5" />
+                  </label>
+
+                  <div
+                    class="preset-grid settings-persona-grid settings-field-wide"
+                    id="settingsPersonaPresetGrid"
+                    aria-label="当前桌宠性格选项"
+                  ></div>
+
+                  <label class="settings-field settings-field-wide">
+                    <span>性格设定</span>
+                    <textarea id="settingsPersona" rows="5" placeholder="自己写桌宠性格，或用下方的蒸馏按钮生成。"></textarea>
+                  </label>
+
+                  <label class="settings-field settings-field-wide">
+                    <span>蒸馏人物性格</span>
+                    <textarea id="personaSource" rows="3" placeholder="输入人物名、角色名，或粘贴一段人物资料 / 语录。"></textarea>
+                  </label>
+
+                  <section class="pet-memory-panel settings-field-wide" aria-label="当前桌宠记忆">
+                    <div class="memory-panel-header">
+                      <div>
+                        <strong>当前桌宠记忆</strong>
+                        <small>自动提取后需要确认；每只桌宠单独保存。</small>
+                      </div>
+                      <span class="switch-row">
+                        <input id="memoryEnabledSwitch" type="checkbox" />
+                        <small id="memoryEnabledStatus">关闭</small>
+                      </span>
+                    </div>
+
+                    <div class="memory-profile-grid">
+                      <label class="settings-field">
+                        <span>用户称呼</span>
+                        <input id="memoryNickname" type="text" autocomplete="off" placeholder="例如：小宋 / 老板 / 同学" />
+                      </label>
+                      <label class="settings-field settings-field-wide">
+                        <span>用户偏好</span>
+                        <textarea id="memoryPreferences" rows="2" placeholder="例如：喜欢短回复、先安抚再给行动建议。"></textarea>
+                      </label>
+                      <label class="settings-field settings-field-wide">
+                        <span>最近任务</span>
+                        <textarea id="memoryRecentTasks" rows="2" placeholder="例如：正在做桌宠 App 内测，需要提醒喝水和休息。"></textarea>
+                      </label>
+                    </div>
+
+                    <div class="memory-add-row">
+                      <select id="manualMemoryCategory" aria-label="手动记忆类型">
+                        <option value="preference">偏好</option>
+                        <option value="task">任务</option>
+                        <option value="nickname">称呼</option>
+                        <option value="note">备注</option>
+                      </select>
+                      <input id="manualMemoryText" type="text" autocomplete="off" placeholder="手动添加一条记忆" />
+                      <button class="secondary-button" id="addMemoryItem" type="button">添加</button>
+                    </div>
+
+                    <div class="memory-list" id="memoryList" aria-label="记忆列表"></div>
+                  </section>
+
+                  <div class="library-detail-actions settings-field-wide">
+                    <button class="secondary-button" id="distillPersona" type="button">Skill 蒸馏</button>
+                    <button class="send-button" id="savePetSettings" type="button">保存当前桌宠</button>
+                  </div>
+                </section>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view create-view" data-page-view="create" aria-label="创建桌宠">
+          <section class="create-pet" aria-label="创建桌宠">
+            <div class="create-title">
+              <div>
+                <p class="eyebrow">Create</p>
+                <h1>创建桌宠</h1>
+              </div>
+              <div class="create-title-actions">
+                <button class="secondary-button compact-action" id="petStudioLaunch" onclick="window.open('https://lumpa-pet-studio-maker.wxxex.chatgpt.site', '_blank', 'noopener')" type="button" title="在浏览器中打开在线宠物生成器">✦ 在线宠物生成器</button>
+                <button class="secondary-button compact-action" id="resetCreatePet" type="button">重填</button>
+              </div>
+            </div>
+
+            <div class="create-grid">
+              <label class="settings-field">
+                <span>名字</span>
+                <input id="petNameInput" type="text" autocomplete="off" placeholder="例如：棉棉" />
+              </label>
+              <label class="settings-field">
+                <span>物种</span>
+                <select id="petSpeciesInput">
+                  <option value="rabbit">兔子</option>
+                  <option value="cat">猫</option>
+                  <option value="fox">狐狸</option>
+                  <option value="penguin">企鹅</option>
+                  <option value="custom">其他动物</option>
+                </select>
+              </label>
+            </div>
+
+            <section class="create-section create-image-section" aria-label="形象">
+              <div class="create-section-header">
+                <div>
+                  <p class="eyebrow">Visual</p>
+                  <h2>形象</h2>
+                </div>
+                <small>上传透明角色图，统一画布与脚底锚点，并生成完整动作帧。</small>
+              </div>
+
+              <label class="image-upload-field">
+                <span class="image-upload-preview" id="petImagePreview">形象</span>
+                <span class="image-upload-copy">
+                  <strong>上传桌宠形象</strong>
+                  <small id="petImageHint">支持 PNG / WebP / GIF，透明背景效果最好</small>
+                </span>
+                <input id="petImageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+              </label>
+
+              <section class="gif-action-panel hidden" id="gifActionPanel" aria-label="GIF 动作上传">
+                <div class="gif-action-copy">
+                  <strong>GIF 动作预览</strong>
+                  <small id="gifActionStatus">上传 GIF 后会本地拆帧，不调用外部 API。</small>
+                </div>
+                <div class="gif-action-preview" id="gifActionPreview" aria-hidden="true"></div>
+                <label class="settings-field">
+                  <span>动作名称</span>
+                  <input id="gifActionName" type="text" autocomplete="off" placeholder="例如：开心摇摆" />
+                </label>
+                <label class="settings-field">
+                  <span>动作类型</span>
+                  <select id="gifActionType">
+                    <option value="happy">开心</option>
+                    <option value="wave">打招呼</option>
+                    <option value="sleep">睡觉</option>
+                    <option value="idle">待机</option>
+                    <option value="talk">说话装饰动作</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                </label>
+                <button class="secondary-button compact-action" id="saveGifAction" type="button" disabled>保存动作</button>
+                <div class="pending-action-list" id="pendingActionList" aria-label="待创建动作"></div>
+              </section>
+
+              <section class="image-processing-panel" aria-label="形象处理">
+                <div class="image-check-list" id="imageCheckList">
+                  <span>等待上传形象</span>
+                </div>
+
+                <div class="floating-preview-card">
+                  <div>
+                    <strong>实际浮窗预览</strong>
+                    <small id="createPreviewStatus">上传后会按当前桌宠大小预览</small>
+                  </div>
+                  <div class="floating-preview-window" aria-hidden="true">
+                    <img id="createFloatingPreviewImage" alt="" />
+                  </div>
+                </div>
+
+                <button class="secondary-button" id="removeBackgroundImage" type="button" disabled>一键去背</button>
+              </section>
+
+              <section class="asset-generator" aria-label="AI 完整动作帧生成">
+                <div class="asset-generator-header">
+                  <div>
+                    <strong>AI 生成完整动作帧</strong>
+                  </div>
+                  <button class="secondary-button compact-action" id="generateMouthFrames" type="button">生成动作帧</button>
+                </div>
+
+                <div class="asset-generator-grid">
+                  <label class="settings-field">
+                    <span>图像模型</span>
+                    <select id="imageModelInput">
+                      <option value="bundled-proxy-gpt-image-2">默认中转站 · GPT Image 2</option>
+                      <option value="siliconflow-qwen-image-edit-2509">硅基流动 · Qwen/Qwen-Image-Edit-2509</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="mouth-frame-preview" id="mouthFramePreview" aria-label="动作帧预览"></div>
+                <section class="video-action-generator" aria-label="AI 视频动作生成">
+                  <div class="video-action-copy">
+                    <strong>AI 视频生成动作</strong>
+                    <small>使用中转站 grok-imagine-video。先描述你想要的动作，生成后会本地抽帧并保存为动作。</small>
+                  </div>
+                  <label class="settings-field">
+                    <span>动作描述</span>
+                    <textarea id="videoActionPrompt" rows="3" placeholder="例如：原地开心地左右摇摆，两只手轻轻挥动，动作自然可循环。"></textarea>
+                  </label>
+                  <div class="video-action-grid">
+                    <label class="settings-field">
+                      <span>动作名称</span>
+                      <input id="videoActionName" type="text" autocomplete="off" placeholder="例如：开心摇摆" />
+                    </label>
+                    <label class="settings-field">
+                      <span>动作类型</span>
+                      <select id="videoActionType">
+                        <option value="happy">开心</option>
+                        <option value="wave">打招呼</option>
+                        <option value="sleep">睡觉</option>
+                        <option value="idle">待机</option>
+                        <option value="talk">说话装饰动作</option>
+                        <option value="custom">自定义</option>
+                      </select>
+                    </label>
+                    <button class="secondary-button compact-action" id="generateVideoAction" type="button">生成视频动作</button>
+                  </div>
+                  <div class="video-action-preview hidden" id="videoActionPreview" aria-label="视频动作预览"></div>
+                  <p class="asset-generator-status" id="videoActionStatus">上传静态形象后，可以用文字描述生成一个动作。</p>
+                </section>
+                <p class="asset-generator-status" id="mouthFrameStatus">上传透明 PNG / WebP 后，会统一画布、角色中心和脚底锚点，再生成待机、哦口、张口和挥手完整帧。</p>
+              </section>
+            </section>
+
+            <section class="create-section create-personality-section" aria-label="性格">
+              <div class="create-section-header">
+                <div>
+                  <p class="eyebrow">Personality</p>
+                  <h2>性格</h2>
+                </div>
+                <small>先选默认性格，也可以自己写，或用人物设定蒸馏成自定义性格。</small>
+              </div>
+
+              <section class="personality-block" aria-label="默认性格选项">
+                <h3>默认选项</h3>
+                <div class="preset-grid" id="personaPresetGrid" aria-label="性格预设"></div>
+              </section>
+
+              <section class="personality-block" aria-label="自定义性格">
+                <h3>自定义</h3>
+                <label class="settings-field">
+                  <span>自定义性格</span>
+                  <textarea id="customPersonality" rows="4" placeholder="写下它怎么陪你、怎么称呼你、回复长短和边界。留空则使用上方预设。"></textarea>
+                </label>
+              </section>
+
+              <section class="personality-block" aria-label="蒸馏性格">
+                <h3>蒸馏</h3>
+                <label class="settings-field">
+                  <span>蒸馏性格</span>
+                  <textarea id="createDistillSource" rows="3" placeholder="输入人物名、角色名，或粘贴一段语录 / 设定。"></textarea>
+                </label>
+                <button class="secondary-button" id="distillCreatePet" type="button">蒸馏到自定义</button>
+              </section>
+            </section>
+
+            <div class="create-actions">
+              <button class="send-button" id="createPetButton" type="button">创建并启用</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view usage-view" data-page-view="usage" aria-label="使用统计">
+          <section class="usage-page-panel">
+            <header class="settings-page-header">
+              <div>
+                <p class="eyebrow">Usage</p>
+                <h1>使用统计</h1>
+              </div>
+              <span class="settings-note">只在本机统计前台软件时长，不记录输入内容。</span>
+            </header>
+
+            <div class="usage-mode-tabs" role="tablist" aria-label="usage period">
+              <button class="usage-mode-tab active" type="button" data-usage-mode="day">每天</button>
+              <button class="usage-mode-tab" type="button" data-usage-mode="week">每周</button>
+            </div>
+
+            <section class="usage-phone-card" aria-label="screen usage time">
+              <div class="usage-summary-copy">
+                <strong id="usageHeroTime">0 分钟</strong>
+                <span id="usageDeltaText">正在采集使用数据</span>
+              </div>
+              <div class="usage-chart" id="usageChart" aria-label="usage chart"></div>
+              <div class="usage-chart-axis" id="usageChartAxis"></div>
+              <div class="usage-category-summary" id="usageCategorySummary"></div>
+            </section>
+
+            <div class="usage-detail-header">
+              <span>统计详情</span>
+              <button class="usage-filter-button" type="button">应用</button>
+            </div>
+            <section class="usage-dashboard" aria-label="今日使用概览">
+              <article class="usage-card usage-card-current">
+                <small>当前正在使用</small>
+                <strong id="usageCurrentApp">等待采集</strong>
+                <span id="usageCurrentExe">打开桌面 App 后开始统计</span>
+              </article>
+              <article class="usage-card">
+                <small>今日活跃</small>
+                <strong id="usageActiveTime">0 分钟</strong>
+                <span>鼠标键盘近期有操作时计入</span>
+              </article>
+              <article class="usage-card">
+                <small>今日空闲</small>
+                <strong id="usageIdleTime">0 分钟</strong>
+                <span id="usageIdleNow">当前空闲 0 秒</span>
+              </article>
+            </section>
+
+            <section class="usage-ranking-panel">
+              <div class="settings-column-title">
+                <span>1</span>
+                <div>
+                  <strong>软件时长排行</strong>
+                  <small>按今天作为前台窗口的累计时间排序</small>
+                </div>
+              </div>
+              <div class="usage-list" id="usageAppList">
+                <p class="usage-empty">还没有统计到软件使用时长。</p>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section class="page-view settings-view" data-page-view="settings" aria-label="设置">
+          <section class="settings-page-panel">
+            <header class="settings-page-header">
+              <div>
+                <p class="eyebrow">Settings</p>
+                <h1>通用设置</h1>
+              </div>
+              <span class="settings-note">本地保存，不会展示密钥。</span>
+            </header>
+
+            <section class="settings-panel" id="settingsPanel" aria-label="通用设置">
+              <div class="settings-columns">
+                <section class="settings-column settings-general-column">
+                  <div class="settings-column-title">
+                    <span>1</span>
+                    <div>
+                      <strong>通用设置</strong>
+                      <small>API、窗口和桌面行为，所有桌宠共用</small>
+                    </div>
+                  </div>
+
+                <label class="settings-field">
+                  <span>语言</span>
+                  <select id="languageInput">
+                    <option value="zh-CN">中文</option>
+                    <option value="en">English</option>
+                  </select>
+                </label>
+
+                <label class="settings-field">
+                  <span>API Key</span>
+                  <input id="settingsApiKey" type="password" autocomplete="off" placeholder="填写自己的 Key，或登录 Lumpa 账号" />
+                </label>
+
+                <label class="settings-field">
+                  <span>API 地址</span>
+                  <select id="settingsApiBase">
+                    <option value="">Lumpa 账号网关（需配置）</option>
+                    <option value="https://api.siliconflow.cn/v1">硅基流动 cn</option>
+                    <option value="https://api.siliconflow.com/v1">硅基流动 com</option>
+                    <option value="https://generativelanguage.googleapis.com/v1beta/openai">Gemini API</option>
+                  </select>
+                </label>
+
+                <label class="settings-field">
+                  <span>对话模型预设</span>
+                  <select id="chatModelPreset">
+                    <option value="bundled-proxy-gemini">Lumpa 账号 · GPT 5.4 Mini</option>
+                    <option value="bundled-proxy-gpt-5-4">Lumpa 账号 · GPT 5.4</option>
+                    <option value="gemini-3-1-flash-lite">Gemini 3.1 Flash-Lite（免费层级，默认）</option>
+                    <option value="gemini-3-5-flash">Gemini 3.5 Flash（免费层级）</option>
+                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview（免费层级）</option>
+                    <option value="siliconflow-kimi">Kimi K2.5（硅基流动）</option>
+                    <option value="custom">手动填写</option>
+                  </select>
+                </label>
+
+                <label class="settings-field">
+                  <span>对话模型</span>
+                  <input id="settingsChatModel" type="text" autocomplete="off" />
+                </label>
+
+                <label class="settings-field switch-field">
+                  <span>桌面浮窗</span>
+                  <span class="switch-row">
+                    <input id="floatingSwitch" type="checkbox" />
+                    <small id="floatingStatus">关闭</small>
+                  </span>
+                </label>
+
+                <label class="settings-field switch-field">
+                  <span>锁定位置</span>
+                  <span class="switch-row">
+                    <input id="positionLockedSwitch" type="checkbox" />
+                    <small id="positionLockedStatus">关闭</small>
+                  </span>
+                </label>
+
+                <label class="settings-field switch-field">
+                  <span>置顶显示</span>
+                  <span class="switch-row">
+                    <input id="alwaysOnTopSwitch" type="checkbox" />
+                    <small id="alwaysOnTopStatus">开启</small>
+                  </span>
+                </label>
+
+                <label class="settings-field switch-field">
+                  <span>穿透点击</span>
+                  <span class="switch-row">
+                    <input id="clickThroughSwitch" type="checkbox" />
+                    <small id="clickThroughStatus">关闭</small>
+                  </span>
+                </label>
+
+                <label class="settings-field settings-field-wide">
+                  <span>桌面挂靠</span>
+                  <select id="desktopGravityInput">
+                    <option value="free">自由拖动</option>
+                    <option value="snap-edge">吸到最近屏幕边</option>
+                    <option value="taskbar">挂在任务栏上方</option>
+                    <option value="edge-hang">屏幕边缘挂着</option>
+                  </select>
+                </label>
+
+                <label class="settings-field switch-field">
+                  <span>开机自启</span>
+                  <span class="switch-row">
+                    <input id="launchAtLoginSwitch" type="checkbox" />
+                    <small id="launchAtLoginStatus">关闭</small>
+                  </span>
+                </label>
+
+                <label class="settings-field switch-field">
+                  <span>自动检查更新</span>
+                  <span class="switch-row">
+                    <input id="autoUpdateSwitch" type="checkbox" />
+                    <small id="autoUpdateStatus">关闭</small>
+                  </span>
+                </label>
+
+                <label class="settings-field settings-field-wide">
+                  <span>更新通道</span>
+                  <select id="updateChannelInput">
+                    <option value="stable">stable（正式版）</option>
+                    <option value="beta">beta（测试版）</option>
+                  </select>
+                </label>
+
+                <section class="settings-field settings-field-wide update-check-panel">
+                  <span>更新检查</span>
+                  <div class="settings-inline-actions">
+                    <button class="secondary-button" id="checkUpdateButton" type="button">检查更新</button>
+                    <button class="primary-button" id="installUpdateButton" type="button" hidden>下载并安装</button>
+                  </div>
+                  <p class="asset-generator-status" id="updateCheckStatus">安装包只信任内置 HTTPS 端点和签名公钥。</p>
+                </section>
+
+                <section class="permissions-panel settings-field-wide" aria-label="权限管理">
+                  <div class="permissions-header">
+                    <div>
+                      <strong>权限管理</strong>
+                      <small>敏感能力统一在这里开关；关闭后对应功能会停止调用。</small>
+                    </div>
+                  </div>
+                  <div class="permission-grid">
+                    <label class="permission-card">
+                      <span>
+                        <strong>联网聊天</strong>
+                        <small>调用对话模型生成回复和蒸馏性格</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="chatNetwork" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>语音合成</strong>
+                        <small>调用 TTS 模型朗读回复</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="ttsNetwork" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>图像 / 视频生成</strong>
+                        <small>去背、动作帧、生病立绘和视频动作</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="imageGeneration" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>音色克隆</strong>
+                        <small>上传参考音频生成音色</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="voiceClone" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>使用统计</strong>
+                        <small>读取前台软件名称和使用时长</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="usageStats" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>记忆</strong>
+                        <small>保存称呼、偏好、任务等本地记忆</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="memory" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>桌面控制</strong>
+                        <small>置顶、穿透点击、吸边和浮窗位置</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="desktopControl" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>开机自启</strong>
+                        <small>写入或移除 Windows 开机启动项</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="launchAtLogin" />
+                    </label>
+                    <label class="permission-card">
+                      <span>
+                        <strong>自动更新</strong>
+                        <small>联网检查新版本并打开下载地址</small>
+                      </span>
+                      <input type="checkbox" data-permission-toggle="autoUpdate" />
+                    </label>
+                  </div>
+                  <p class="asset-generator-status" id="permissionStatus">权限只保存在本机。</p>
+                </section>
+
+                <section class="usage-supervision-panel settings-field-wide" aria-label="自我监督">
+                  <div class="usage-supervision-header">
+                    <div>
+                      <strong>自我监督</strong>
+                      <small>按今天的软件前台使用时长触发当前宠物的生病状态。</small>
+                    </div>
+                    <span class="switch-row">
+                      <input id="usageSupervisionEnabled" type="checkbox" />
+                      <small id="usageSupervisionEnabledStatus">关闭</small>
+                    </span>
+                  </div>
+                  <div class="usage-supervision-grid">
+                    <label class="settings-field">
+                      <span>软件名称</span>
+                      <input id="usageSupervisionApp" type="text" list="usageAppOptions" autocomplete="off" placeholder="例如：msedge.exe" />
+                      <datalist id="usageAppOptions"></datalist>
+                    </label>
+                    <label class="settings-field">
+                      <span>判断条件</span>
+                      <select id="usageSupervisionOperator">
+                        <option value="over">超过</option>
+                        <option value="under">不超过</option>
+                      </select>
+                    </label>
+                    <label class="settings-field">
+                      <span>时长</span>
+                      <input id="usageSupervisionDuration" type="number" min="1" max="1440" step="1" value="30" />
+                    </label>
+                    <label class="settings-field">
+                      <span>时长单位</span>
+                      <select id="usageSupervisionUnit">
+                        <option value="minutes">分钟</option>
+                        <option value="hours">小时</option>
+                      </select>
+                    </label>
+                  </div>
+                  <p class="asset-generator-status" id="usageSupervisionStatus">尚未启用监督规则。</p>
+                </section>
+                </section>
+              </div>
+
+              <div class="settings-actions">
+                <button class="send-button" id="saveSettings" type="button">保存通用设置</button>
+                <button class="secondary-button" id="clearSettings" type="button">清空本地设置</button>
+              </div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="src/bootstrap.js"></script>
+  </body>
+</html>
+
+
