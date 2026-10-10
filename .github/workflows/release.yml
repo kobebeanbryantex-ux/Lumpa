@@ -190,7 +190,7 @@ jobs:
       - name: Publish identical signed artifacts to Alibaba Cloud OSS
         run: node scripts/upload-oss.mjs artifacts/release/oss
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: lumpa-${{ inputs.channel }}-${{ steps.stage.outputs.version }}
           path: artifacts/release
