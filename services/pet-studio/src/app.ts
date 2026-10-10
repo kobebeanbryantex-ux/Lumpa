@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { z } from "zod";
 import type { PetStudioConfig } from "./config.js";
 import { runInference } from "./inference.js";
+import { jobMessages } from "./messages.js";
 import { JobStore } from "./storage.js";
 import { petStyles, type PetJob, type PetStyle } from "./types.js";
 
@@ -12,7 +13,8 @@ const styleSchema = z.enum(petStyles);
 
 function publicJob(job: PetJob) {
   const { sourceFilename: _sourceFilename, sourceMime: _sourceMime, ...publicValue } = job;
-  return publicValue;
+  // Also localize older saved jobs without modifying their stored metadata.
+  return { ...publicValue, message: jobMessages[job.state] };
 }
 
 export async function buildPetStudio(config: PetStudioConfig) {
@@ -55,14 +57,14 @@ export async function buildPetStudio(config: PetStudioConfig) {
     let file: { data: Buffer; mime: PetJob["sourceMime"] } | undefined;
     for await (const part of fields) {
       if (part.type === "file") {
-        if (part.fieldname !== "image" || !allowedMimes.has(part.mimetype as PetJob["sourceMime"]) || file) return reply.code(400).send({ message: "请上传一张 JPG、PNG 或 WebP 图片。" });
+        if (part.fieldname !== "image" || !allowedMimes.has(part.mimetype as PetJob["sourceMime"]) || file) return reply.code(400).send({ message: "Please upload one JPG, PNG, or WebP image." });
         file = { data: await part.toBuffer(), mime: part.mimetype as PetJob["sourceMime"] };
       } else if (part.fieldname === "style") {
         const parsed = styleSchema.safeParse(part.value);
         if (parsed.success) style = parsed.data;
       }
     }
-    if (!style || !file || file.data.byteLength === 0) return reply.code(400).send({ message: "image 和 style 不能为空。" });
+    if (!style || !file || file.data.byteLength === 0) return reply.code(400).send({ message: "An image and a valid style are required." });
     const job = await store.create({ style, mime: file.mime, source: file.data });
     if (config.inference.mode === "disabled") {
       const waiting = await runInference(config, store, job);
@@ -75,13 +77,13 @@ export async function buildPetStudio(config: PetStudioConfig) {
   app.get("/v1/pet-studio/jobs/:id", async (request, reply) => {
     const id = (request.params as { id: string }).id;
     const job = await store.get(id);
-    if (!job) return reply.code(404).send({ message: "未找到该生成任务。" });
+    if (!job) return reply.code(404).send({ message: "Generation job not found." });
     return { job: publicJob(job) };
   });
 
   app.delete("/v1/pet-studio/jobs/:id", async (request, reply) => {
     const id = (request.params as { id: string }).id;
-    if (!store.isValidId(id)) return reply.code(404).send({ message: "未找到该生成任务。" });
+    if (!store.isValidId(id)) return reply.code(404).send({ message: "Generation job not found." });
     await store.remove(id);
     return reply.code(204).send();
   });
@@ -89,8 +91,8 @@ export async function buildPetStudio(config: PetStudioConfig) {
   app.setErrorHandler((error, request, reply) => {
     const serviceError = error as Error & { code?: string; statusCode?: number };
     request.log.error({ name: serviceError.name, statusCode: serviceError.statusCode }, "pet studio request failed");
-    if (serviceError.code === "FST_REQ_FILE_TOO_LARGE") return reply.code(413).send({ message: "图片超过允许大小。" });
-    return reply.code(Math.min(599, Math.max(400, serviceError.statusCode || 500))).send({ message: "桌宠生成服务暂时不可用。" });
+    if (serviceError.code === "FST_REQ_FILE_TOO_LARGE") return reply.code(413).send({ message: "This image exceeds the upload size limit." });
+    return reply.code(Math.min(599, Math.max(400, serviceError.statusCode || 500))).send({ message: "The pet generation service is temporarily unavailable." });
   });
   return { app, store };
 }

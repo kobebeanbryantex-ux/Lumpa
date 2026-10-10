@@ -3,6 +3,14 @@
 本仓库包含当前 Windows 桌面端源码、网页前端、宠物动画素材、账号网关及宠物生成服务代码。
 之前的 GitHub 首页说明保留在 [docs/github-original-readme.md](docs/github-original-readme.md)。
 
+## 自定义宠物生成器：英文版（2026-10-10）
+
+- 独立网站源码位于 `pet-generator-web/`，界面、交互提示、无障碍标签及演示弹窗已改为英文，并检查电脑和手机排版。
+- 在该目录运行 `node scripts/check-english.mjs` 验证英文文案、脚本语法及站点配置；使用 `python -m http.server 4190 --bind 127.0.0.1 --directory dist` 本地预览。
+- `services/pet-studio/` 的公开错误及任务状态文案已英文化，包含旧任务响应兼容及7项回归测试；在该目录执行 `npm ci`、`npm test` 和 `npm run build`。
+- 网站目前仍是演示原型，未连接真实图像生成、支付或下载。价格保留CNY示例；网站访问权限沿用原配置，尚未作为公开商业服务上线。
+- 本次不修改桌面端版本号，不重新生成Windows安装包。后端源码更新不代表已部署远程推理服务。
+
 ## 当前版本：1.0.8
 
 - 默认宠物为黄色（奶油）法斗；当前验收配置开放全部20种宠物，不代表商业版最终解锁规则。

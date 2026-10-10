@@ -2,6 +2,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { PetJob } from "./types.js";
+import { jobMessages } from "./messages.js";
 
 const idPattern = /^[a-f0-9]{32}$/;
 const extensions = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
@@ -25,7 +26,7 @@ export class JobStore {
       sourceFilename: `source.${extensions[input.mime]}`,
       createdAt: now,
       updatedAt: now,
-      message: "任务已进入生成队列。",
+      message: jobMessages.queued,
     };
     await mkdir(this.directory(id), { recursive: false });
     await writeFile(path.join(this.directory(id), job.sourceFilename), input.source, { mode: 0o600 });

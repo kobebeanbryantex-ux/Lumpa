@@ -46,3 +46,7 @@ scratch/
 promo-video/
 skeleton-companion-preview.png
 PACKAGE_MANIFEST.sha256.txt
+
+# This buildless generator keeps its actual source in dist/.
+!pet-generator-web/dist/
+!pet-generator-web/dist/**

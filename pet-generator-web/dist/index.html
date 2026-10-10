@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Explore Lumpa Pet Studio: turn a favorite photo or character into a Windows desktop companion. Try the local preview prototype before generation and checkout launch." />
+    <title>Lumpa Pet Studio · Create Your Desktop Companion</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      :root {
+        --ink: #10243f;
+        --ink-2: #183355;
+        --paper: #f7f3ec;
+        --cream: #fffaf2;
+        --line: rgba(16, 36, 63, .13);
+        --coral: #ff735f;
+        --coral-deep: #d94f49;
+        --gold: #ffc46a;
+        --mint: #77d5bd;
+        --shadow: 0 24px 54px rgba(10, 27, 49, .16);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, "Segoe UI", Arial, sans-serif; }
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+      .nav { height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+      .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.04em; text-decoration: none; color: var(--ink); font-size: 1.12rem; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: var(--ink); color: #fff9ef; box-shadow: 4px 4px 0 var(--coral); }
+      .brand small { display: block; letter-spacing: .13em; font-size: .55rem; color: var(--coral-deep); font-weight: 800; margin-top: 2px; }
+      .nav-links { display: flex; gap: 22px; align-items: center; }
+      .nav-links a { text-decoration: none; color: rgba(16, 36, 63, .72); font-size: .88rem; font-weight: 700; }
+      .nav-cta, .primary, .secondary { border: 0; border-radius: 999px; padding: 13px 19px; font-weight: 800; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+      .nav-cta, .primary { background: var(--ink); color: #fff9ef; box-shadow: 0 8px 0 #0a192c; }
+      .nav-cta:hover, .primary:hover { transform: translateY(-2px); box-shadow: 0 10px 0 #0a192c; }
+      .secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+      .eyebrow { color: var(--coral-deep); letter-spacing: .13em; font-size: .74rem; font-weight: 900; text-transform: uppercase; }
+      .hero { padding: 52px 0 72px; display: grid; grid-template-columns: minmax(0, .95fr) minmax(420px, 1.05fr); align-items: center; gap: 48px; }
+      h1 { font-size: clamp(3rem, 6vw, 5.55rem); line-height: .98; letter-spacing: -.08em; margin: 12px 0 21px; max-width: 720px; }
+      h1 em { font-style: normal; color: var(--coral); position: relative; }
+      h1 em::after { content: ""; position: absolute; height: .28em; background: var(--gold); border-radius: 99px; width: 98%; left: 1%; bottom: .01em; z-index: -1; transform: rotate(-2deg); }
+      .hero-copy > p { font-size: 1.1rem; line-height: 1.75; margin: 0 0 28px; color: rgba(16, 36, 63, .76); max-width: 530px; }
+      .trust { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: .82rem; color: rgba(16, 36, 63, .72); font-weight: 700; }
+      .trust span::before { content: "✦"; color: var(--coral); margin-right: 6px; }
+      .generator { position: relative; min-width: 0; background: #fffdf8; border: 1px solid rgba(16, 36, 63, .16); border-radius: 28px; padding: 18px; box-shadow: var(--shadow); overflow: hidden; }
+      .generator::before { content: ""; position: absolute; width: 270px; height: 270px; right: -100px; top: -120px; border-radius: 50%; background: rgba(255, 196, 106, .28); }
+      .generator-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; position: relative; }
+      .step { display: inline-flex; align-items: center; gap: 8px; font-size: .84rem; font-weight: 900; }
+      .step b { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--coral); font-size: .75rem; }
+      .local-only { padding: 7px 10px; border-radius: 999px; background: #e8f8f1; color: #24745d; font-size: .7rem; font-weight: 800; white-space: nowrap; }
+      .dropzone { position: relative; margin-top: 16px; min-height: 158px; border: 1.5px dashed rgba(16, 36, 63, .29); background: linear-gradient(135deg, rgba(255, 115, 95, .08), rgba(119, 213, 189, .1)); border-radius: 20px; display: grid; place-items: center; text-align: center; padding: 18px; transition: border .2s, background .2s; }
+      .dropzone.dragging { border-color: var(--coral); background: rgba(255, 115, 95, .14); }
+      .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+      .drop-icon { font-size: 2rem; line-height: 1; }
+      .dropzone strong { display: block; margin: 7px 0 4px; }
+      .dropzone small { color: rgba(16, 36, 63, .65); }
+      .source-preview { display: none; width: 64px; height: 64px; border-radius: 18px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 8px 20px rgba(16, 36, 63, .15); margin: 0 auto 7px; }
+      .styles { margin: 18px 0 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .style { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 8px; text-align: left; color: var(--ink); }
+      .style span { display: block; font-size: 1rem; margin-bottom: 7px; }
+      .style b { display: block; font-size: .78rem; }
+      .style small { display: block; margin-top: 4px; font-size: .64rem; color: rgba(16, 36, 63, .62); }
+      .style.active { border: 2px solid var(--coral); background: #fff5f1; padding: 11px 7px; }
+      .generate { width: 100%; display: flex; justify-content: center; align-items: center; gap: 9px; }
+      .generate[disabled] { opacity: .72; cursor: wait; }
+      .generate .spark { font-size: 1.08rem; }
+      .prototype-note { text-align: center; margin: 12px 0 0; color: rgba(16, 36, 63, .57); font-size: .72rem; }
+      .visual { padding: 14px 0 78px; }
+      .visual-wrap { position: relative; border-radius: 34px; overflow: hidden; box-shadow: var(--shadow); min-height: 470px; background: var(--ink); }
+      .visual img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+      .visual-wrap::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,17,30,.64), transparent 65%); pointer-events: none; }
+      .visual-copy { position: relative; z-index: 1; padding: 42px; color: white; max-width: 415px; text-shadow: 0 2px 16px rgba(0, 0, 0, .5); }
+      .visual-copy h2 { margin: 9px 0; font-size: clamp(1.8rem, 3vw, 3.1rem); letter-spacing: -.06em; }
+      .visual-copy p { line-height: 1.6; font-size: .95rem; color: rgba(255,255,255,.87); }
+      .run-chip { position: absolute; right: 26px; bottom: 25px; z-index: 2; padding: 13px 16px; border-radius: 16px; background: rgba(255,255,255,.94); box-shadow: 0 10px 25px rgba(0,0,0,.18); color: var(--ink); font-weight: 800; font-size: .86rem; }
+      .run-chip i { color: var(--coral); font-style: normal; margin-right: 5px; }
+      .section { padding: 88px 0; }
+      .section-head { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 30px; }
+      .section h2 { font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.07em; margin: 8px 0 0; line-height: 1.05; }
+      .section-head p { max-width: 390px; color: rgba(16, 36, 63, .7); line-height: 1.65; margin: 0; }
+      .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .flow-card { padding: 24px; background: #fffdf8; border: 1px solid var(--line); border-radius: 22px; min-height: 196px; position: relative; overflow: hidden; }
+      .flow-no { color: var(--coral); font-size: .74rem; font-weight: 900; letter-spacing: .12em; }
+      .flow-card h3 { font-size: 1.23rem; margin: 28px 0 9px; letter-spacing: -.03em; }
+      .flow-card p { font-size: .9rem; color: rgba(16, 36, 63, .68); line-height: 1.6; margin: 0; }
+      .flow-mark { position: absolute; top: 16px; right: 20px; font-size: 2rem; transform: rotate(-8deg); }
+      .desktop-lab { display: grid; grid-template-columns: 1fr .85fr; gap: 30px; align-items: center; padding: 33px; background: var(--ink); color: #fff; border-radius: 28px; overflow: hidden; }
+      .desktop-lab h2 { margin-top: 8px; }
+      .desktop-lab p { line-height: 1.7; color: rgba(255,255,255,.75); max-width: 520px; }
+      .desktop-stage { min-height: 285px; background: radial-gradient(circle at 42% 27%, #315979, #172b49 62%, #0c1b31); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,.16); }
+      .desktop-stage::before { content: ""; position: absolute; width: 70%; height: 12px; border-radius: 20px; background: rgba(255,255,255,.09); bottom: 17px; left: 15%; }
+      .mini-window { position: absolute; left: 25px; top: 26px; width: 58%; height: 58%; background: rgba(255,255,255,.92); border-radius: 12px; padding: 12px; color: var(--ink); }
+      .mini-window small { font-size: .62rem; font-weight: 800; color: rgba(16,36,63,.58); }
+      .mini-window .mini-line { height: 7px; width: 78%; border-radius: 9px; margin-top: 10px; background: #dce5ed; }
+      .mini-window .mini-line:nth-child(3) { width: 54%; background: #ffb2a7; }
+      .mini-window .mini-line:nth-child(4) { width: 66%; background: #9edcca; }
+      .pet { position: absolute; right: 26px; bottom: 28px; width: 82px; height: 82px; display: grid; place-items: center; border: 3px solid rgba(255,255,255,.65); border-radius: 30px 30px 24px 24px; background: linear-gradient(145deg, #fff7e7, #ffd595); color: var(--ink); font-size: 3.4rem; box-shadow: 0 15px 18px rgba(0,0,0,.22); touch-action: none; user-select: none; transition: transform .16s ease; }
+      .pet.running { animation: dash .55s ease both; }
+      @keyframes dash { 0% { transform: rotate(0) translateY(0); } 28% { transform: rotate(-12deg) translateY(-14px) translateX(-9px); } 62% { transform: rotate(7deg) translateY(-4px) translateX(24px); } 100% { transform: rotate(0) translateY(0); } }
+      .drag-tip { position: absolute; bottom: 19px; left: 24px; color: rgba(255,255,255,.76); font-size: .74rem; font-weight: 700; }
+      .pricing { background: #e9f1ef; }
+      .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .plan { background: #fffdf8; border: 1px solid var(--line); border-radius: 22px; padding: 25px; position: relative; }
+      .plan.featured { color: white; background: var(--ink); border-color: var(--ink); transform: translateY(-8px); box-shadow: var(--shadow); }
+      .badge { position: absolute; right: 18px; top: 18px; background: var(--coral); color: #fff; padding: 5px 9px; border-radius: 999px; font-size: .64rem; font-weight: 900; }
+      .plan h3 { margin: 0; font-size: 1.3rem; }
+      .plan .price { font-size: 2.5rem; letter-spacing: -.07em; font-weight: 900; margin: 18px 0 4px; }
+      .plan .price span { font-size: .8rem; letter-spacing: 0; }
+      .plan p { min-height: 40px; margin: 0 0 19px; font-size: .83rem; line-height: 1.55; color: rgba(16,36,63,.65); }
+      .plan.featured p { color: rgba(255,255,255,.72); }
+      .plan ul { padding: 0; list-style: none; font-size: .84rem; line-height: 2; margin: 0 0 20px; }
+      .plan li::before { content: "✓"; color: var(--coral); margin-right: 8px; font-weight: 900; }
+      .plan .secondary { width: 100%; }
+      .plan.featured .primary { width: 100%; background: var(--coral); box-shadow: 0 7px 0 var(--coral-deep); }
+      .faq { border-top: 1px solid var(--line); }
+      .faq details { padding: 19px 0; border-bottom: 1px solid var(--line); }
+      .faq summary { font-weight: 800; cursor: pointer; }
+      .faq p { margin: 12px 0 0; color: rgba(16,36,63,.7); line-height: 1.65; }
+      footer { padding: 34px 0 50px; color: rgba(16,36,63,.65); font-size: .78rem; display: flex; justify-content: space-between; gap: 20px; }
+      dialog { border: 0; border-radius: 24px; padding: 0; width: min(440px, calc(100% - 34px)); box-shadow: 0 30px 80px rgba(0,0,0,.3); }
+      dialog::backdrop { background: rgba(7,17,30,.54); backdrop-filter: blur(4px); }
+      .dialog-body { padding: 30px; background: #fffdf8; }
+      .dialog-body h3 { font-size: 1.7rem; margin: 0 0 9px; letter-spacing: -.05em; }
+      .dialog-body p { color: rgba(16,36,63,.7); line-height: 1.65; }
+      .dialog-actions { display: flex; gap: 10px; margin-top: 22px; }
+      .dialog-actions button { flex: 1; }
+      .toast { position: fixed; z-index: 20; left: 50%; bottom: 24px; transform: translate(-50%, 120px); width: max-content; max-width: calc(100% - 32px); text-align: center; background: var(--ink); color: white; padding: 12px 16px; border-radius: 999px; font-size: .84rem; font-weight: 700; box-shadow: var(--shadow); transition: transform .3s ease; }
+      .toast.show { transform: translate(-50%, 0); }
+      @media (max-width: 850px) { .nav-links { display: none; } .hero { grid-template-columns: minmax(0, 1fr); padding-top: 30px; } .hero-copy { max-width: 650px; } .steps, .plans { grid-template-columns: minmax(0, 1fr); } .section-head, .desktop-lab { grid-template-columns: minmax(0, 1fr); display: grid; align-items: start; } .plan.featured { transform: none; } }
+      @media (max-width: 520px) { .shell { width: min(calc(100% - 26px), 1180px); } .nav { height: 70px; gap: 12px; } .nav-cta { padding: 10px 12px; font-size: .8rem; white-space: nowrap; } h1 { font-size: 3.18rem; } .hero { gap: 26px; padding-bottom: 46px; } .styles { grid-template-columns: 1fr; } .style { display: grid; grid-template-columns: 30px 1fr; column-gap: 6px; align-items: center; padding: 10px; } .style span { grid-row: span 2; margin: 0; } .style small { margin: 0; } .visual-wrap { min-height: 390px; } .visual-copy { padding: 25px; } .desktop-lab { padding: 23px; } .mini-window { width: 65%; } footer { display: block; line-height: 1.7; } }
+    </style>
+  </head>
+  <body>
+    <header class="shell nav">
+      <a class="brand" href="#top" aria-label="Lumpa Pet Studio home"><span class="brand-mark">✦</span><span>Lumpa<small>PET STUDIO</small></span></a>
+      <nav class="nav-links" aria-label="Main navigation"><a href="#how">How it works</a><a href="#desktop">Desktop demo</a><a href="#plans">Pricing</a></nav>
+      <button class="nav-cta" type="button" data-scroll="generator">Create my pet</button>
+    </header>
+    <main id="top">
+      <section class="shell hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow">PHOTO → LIVING DESKTOP PET</div>
+          <h1 id="hero-title">Your favorite.<br><em>Now your<br>desk buddy.</em></h1>
+          <p>A pet, a plushie, a character you love. Explore a Windows companion that walks, jumps, and reacts to your touch. More than a picture: a little company for your day.</p>
+          <div class="trust"><span>Preview before you buy</span><span>Designed for Windows</span><span>Photos stay in your browser</span></div>
+        </div>
+        <section class="generator" id="generator" aria-labelledby="generator-title">
+          <div class="generator-top"><div class="step" id="generator-title"><b>1</b>Start with a favorite photo</div><span class="local-only">Local demo</span></div>
+          <label class="dropzone" id="dropzone">
+            <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a pet or character photo" />
+            <div id="dropContent"><div class="drop-icon">✦</div><strong>Choose a photo or drop it here</strong><small>JPG, PNG, WebP · A clear subject works best</small></div>
+            <div id="photoContent" hidden><img class="source-preview" id="sourcePreview" alt="Preview of your selected photo" /><strong id="fileName">Your photo is ready</strong><small>Used only for this demo in your browser</small></div>
+          </label>
+          <div class="styles" role="radiogroup" aria-label="Choose your pet's visual style">
+            <button class="style active" type="button" data-style="pixel" role="radio" aria-checked="true"><span>▦</span><b>Pixel Studio</b><small>Crisp &amp; playful · Recommended</small></button>
+            <button class="style" type="button" data-style="storybook" role="radio" aria-checked="false"><span>✿</span><b>Storybook</b><small>Soft, hand-drawn charm</small></button>
+            <button class="style" type="button" data-style="plush" role="radio" aria-checked="false"><span>●</span><b>Plush Buddy</b><small>Cozy, round &amp; cuddly</small></button>
+          </div>
+          <button class="primary generate" id="generateButton" type="button"><span class="spark">✦</span><span>Try the animation preview</span></button>
+          <p class="prototype-note" id="generatorStatus" role="status" aria-live="polite">Interactive prototype: no uploads, saved photos, or real image generation.</p>
+        </section>
+      </section>
+      <section class="shell visual" aria-label="Photo-to-pet concept illustration">
+        <div class="visual-wrap"><img src="assets/photo-to-pet-hero.png" alt="Concept art: a ginger cat photo becomes a pixel companion sitting, running, and jumping onto a cat tree" /><div class="visual-copy"><div class="eyebrow" style="color:#ffd594">FROM PHOTO TO COMPANION</div><h2>A character.<br>Not a cutout.</h2><p>One familiar look across every move: sitting, running, jumping, landing, and resting. That's what makes a companion feel like yours.</p></div><div class="run-chip"><i>●</i> Animation concept</div></div>
+      </section>
+      <section class="section shell" id="how" aria-labelledby="how-title">
+        <div class="section-head"><div><div class="eyebrow">THE MAKING FLOW</div><h2 id="how-title">From favorite<br>to familiar.</h2></div><p>The planned flow: preview the look and animations in your browser, then unlock the Windows experience. Meet your companion before you pay.</p></div>
+        <div class="steps"><article class="flow-card"><span class="flow-no">01 / CHOOSE</span><span class="flow-mark">▧</span><h3>Make it yours</h3><p>Pick a photo and explore a pixel, storybook, or plush-inspired look.</p></article><article class="flow-card"><span class="flow-no">02 / PREVIEW</span><span class="flow-mark">⌁</span><h3>See it come to life</h3><p>Try the browser interaction demo. Real custom animation generation is coming later.</p></article><article class="flow-card"><span class="flow-no">03 / COMPANION</span><span class="flow-mark">✦</span><h3>Bring it to Windows</h3><p>The planned download will live on your desktop, react to dragging, and keep you company while you focus.</p></article></div>
+      </section>
+      <section class="section shell" id="desktop" aria-labelledby="desktop-title"><div class="desktop-lab"><div><div class="eyebrow" style="color:#ffc46a">WINDOWS DESKTOP CONCEPT</div><h2 id="desktop-title">Give it a nudge.<br>Watch it run.</h2><p>A little buddy, not a static sticker. Try dragging the demo pet below and let go to see its running animation. This is an interaction demo, not your generated character.</p><button class="secondary" id="tryPet" type="button">Try the little buddy</button></div><div class="desktop-stage" id="petStage" aria-label="Draggable pet demo"><div class="mini-window"><small>Your daily companion</small><div class="mini-line"></div><div class="mini-line"></div><div class="mini-line"></div></div><div class="pet" id="desktopPet" role="button" tabindex="0" aria-label="Drag the demo pet, or press Enter to play">🐈</div><span class="drag-tip">Drag and release · Or press Enter to play</span></div></div></section>
+      <section class="section pricing" id="plans" aria-labelledby="plans-title"><div class="shell"><div class="section-head"><div><div class="eyebrow">SIMPLE, ONE-TIME PRICING</div><h2 id="plans-title">Meet it first.<br>Bring it home later.</h2></div><p>Proposed prices in CNY, shown for the demo only. No payments or downloads are enabled. The full release will follow working custom animations.</p></div><div class="plans"><article class="plan"><h3>Browser Preview</h3><div class="price">Free</div><p>Explore the idea before choosing your companion.</p><ul><li>Local photo preview</li><li>Three visual style options</li><li>Browser interaction demo</li></ul><button class="secondary plan-button" type="button" data-plan="Browser Preview">Try it free</button></article><article class="plan featured"><span class="badge">COMPANION PLAN</span><h3>Desktop Companion</h3><div class="price">¥49<span>.90 · CNY</span></div><p>A custom pet for your Windows desktop. Planned features:</p><ul><li>One-time Windows unlock</li><li>9 core animations</li><li>Transparent desktop &amp; drag interaction</li></ul><button class="primary plan-button" type="button" data-plan="Desktop Companion">Explore the unlock</button></article><article class="plan"><h3>Remake Credits</h3><div class="price">¥12<span>.90+ · CNY</span></div><p>A new photo or a fresh look. Planned features:</p><ul><li>Create another version</li><li>Switch visual styles</li><li>Keep purchased companions</li></ul><button class="secondary plan-button" type="button" data-plan="Remake Credits">Explore credits</button></article></div></div></section>
+      <section class="section shell faq" aria-label="Frequently asked questions"><details><summary>Are my photos uploaded or saved?</summary><p>Not in this demo. Your photo is displayed only in your browser. The planned generation service will ask for consent before upload and provide a deletion option.</p></details><details><summary>Can I use any pet or character image?</summary><p>The intended launch will focus on clear photos of pets, plushies, and characters. Use images you own or have permission to use. This prototype does not yet generate custom pet assets.</p></details><details><summary>Can I pay and download my pet now?</summary><p>Not yet. This is a product and interaction prototype. Real generation, accounts, licenses, payments, and Windows downloads are not connected to this page.</p></details></section>
+    </main>
+    <footer class="shell"><span>© Lumpa Pet Studio · A little company for your day.</span><span>Prototype · No real payments or image generation</span></footer>
+    <dialog id="planDialog" aria-labelledby="dialogTitle" aria-describedby="dialogCopy"><div class="dialog-body"><div class="eyebrow">DEMO CHECKOUT</div><h3 id="dialogTitle">Explore your companion</h3><p id="dialogCopy">This only previews the unlock flow. No payment is taken, and no reservation or account is created.</p><div class="dialog-actions"><button class="secondary" id="closeDialog" type="button">Back to the demo</button><button class="primary" id="reserveButton" type="button">Got it</button></div></div></dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script>
+      const input = document.querySelector('#photoInput');
+      const dropzone = document.querySelector('#dropzone');
+      const sourcePreview = document.querySelector('#sourcePreview');
+      const fileName = document.querySelector('#fileName');
+      const dropContent = document.querySelector('#dropContent');
+      const photoContent = document.querySelector('#photoContent');
+      const status = document.querySelector('#generatorStatus');
+      const generate = document.querySelector('#generateButton');
+      const toast = document.querySelector('#toast');
+      const styleNames = { pixel: 'Pixel Studio', storybook: 'Storybook', plush: 'Plush Buddy' };
+      let activeStyle = 'pixel';
+      let previewUrl;
+      let toastTimer;
+      const showToast = (message) => { toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2800); };
+      const setPreview = (file) => {
+        if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { showToast('Please choose a JPG, PNG, or WebP image.'); return; }
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = URL.createObjectURL(file);
+        sourcePreview.src = previewUrl;
+        sourcePreview.style.display = 'block';
+        fileName.textContent = file.name.length > 22 ? file.name.slice(0, 19) + '…' : file.name;
+        dropContent.hidden = true; photoContent.hidden = false;
+        status.textContent = 'Your photo is ready locally. Choose a style to explore the demo.';
+      };
+      input.addEventListener('change', (event) => setPreview(event.target.files[0]));
+      ['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('dragging'); }));
+      ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
+      dropzone.addEventListener('drop', (event) => setPreview(event.dataTransfer.files[0]));
+      document.querySelectorAll('.style').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('.style').forEach(item => { item.classList.remove('active'); item.setAttribute('aria-checked', 'false'); }); button.classList.add('active'); button.setAttribute('aria-checked', 'true'); activeStyle = button.dataset.style; status.textContent = styleNames[activeStyle] + ' selected. Ready to explore the interaction demo.'; }));
+      generate.addEventListener('click', () => { generate.disabled = true; generate.querySelector('span:last-child').textContent = 'Preparing your demo…'; status.textContent = 'Opening the browser interaction demo. No image generation or upload takes place.'; setTimeout(() => { generate.disabled = false; generate.querySelector('span:last-child').textContent = 'Replay the animation demo'; status.textContent = 'Demo ready · ' + styleNames[activeStyle] + ' selected. This is not a generated version of your photo.'; showToast('The interaction demo is ready. Try dragging the little buddy.'); document.querySelector('#desktop').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 1350); });
+      document.querySelectorAll('[data-scroll]').forEach(button => button.addEventListener('click', () => document.querySelector('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth', block: 'center' })));
+      const pet = document.querySelector('#desktopPet'); const stage = document.querySelector('#petStage'); let drag = null;
+      const movePet = (clientX, clientY) => { const box = stage.getBoundingClientRect(); const x = Math.max(10, Math.min(box.width - 92, clientX - box.left - 40)); const y = Math.max(18, Math.min(box.height - 92, clientY - box.top - 40)); pet.style.right = 'auto'; pet.style.bottom = 'auto'; pet.style.left = x + 'px'; pet.style.top = y + 'px'; };
+      pet.addEventListener('pointerdown', (event) => { drag = { id: event.pointerId }; pet.setPointerCapture(event.pointerId); pet.classList.remove('running'); movePet(event.clientX, event.clientY); });
+      pet.addEventListener('pointermove', (event) => { if (!drag || drag.id !== event.pointerId) return; movePet(event.clientX, event.clientY); });
+      const releasePet = (event) => { if (!drag || drag.id !== event.pointerId) return; drag = null; pet.classList.remove('running'); void pet.offsetWidth; pet.classList.add('running'); showToast('Your demo buddy is on the move.'); };
+      pet.addEventListener('pointerup', releasePet); pet.addEventListener('pointercancel', releasePet);
+      const playDemoPet = () => { pet.classList.remove('running'); void pet.offsetWidth; pet.classList.add('running'); showToast('Grab the little buddy and drag it around.'); };
+      document.querySelector('#tryPet').addEventListener('click', playDemoPet);
+      pet.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); playDemoPet(); } });
+      const dialog = document.querySelector('#planDialog'); const dialogTitle = document.querySelector('#dialogTitle');
+      document.querySelectorAll('.plan-button').forEach(button => button.addEventListener('click', () => { dialogTitle.textContent = button.dataset.plan + ' · Demo'; dialog.showModal(); }));
+      document.querySelector('#closeDialog').addEventListener('click', () => dialog.close());
+      document.querySelector('#reserveButton').addEventListener('click', () => { dialog.close(); showToast('Demo only. No reservation was saved and no payment was made.'); });
+
+      // Expose the same local demo actions to WebMCP-capable clients.
+      const modelContext = document.modelContext;
+      if (modelContext?.registerTool) {
+        const lifecycle = new AbortController();
+        const styles = Object.keys(styleNames);
+        const register = (tool) => Promise.resolve(modelContext.registerTool(tool, { signal: lifecycle.signal })).catch(() => {});
+        register({
+          name: 'select_pet_visual_style',
+          title: 'Choose a pet visual style',
+          description: 'Select Pixel Studio, Storybook, or Plush Buddy for the local interaction demo.',
+          inputSchema: { type: 'object', properties: { style: { type: 'string', enum: styles } }, required: ['style'], additionalProperties: false },
+          annotations: { readOnlyHint: false, untrustedContentHint: false },
+          execute: ({ style }) => {
+            if (!styles.includes(style)) throw new Error('Unsupported visual style. Choose pixel, storybook, or plush.');
+            document.querySelector(`[data-style="${style}"]`).click();
+            return { style, status: 'selected' };
+          }
+        });
+        register({
+          name: 'start_local_pet_preview',
+          title: 'Start the local animation demo',
+          description: 'Open the local pet interaction demo. No photo is uploaded and no custom image is generated.',
+          inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+          annotations: { readOnlyHint: false, untrustedContentHint: true },
+          execute: async () => {
+            generate.click();
+            await new Promise(resolve => setTimeout(resolve, 1450));
+            return { style: activeStyle, status: 'preview_ready', mode: 'local_demo', customImageGenerated: false, actions: ['idle', 'run', 'jump', 'land'] };
+          }
+        });
+        register({
+          name: 'get_local_pet_studio_state',
+          title: 'Get the current Pet Studio state',
+          description: 'Read the selected visual style, local photo selection, and demo status.',
+          inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+          annotations: { readOnlyHint: true, untrustedContentHint: true },
+          execute: () => ({ style: activeStyle, hasLocalPhoto: !photoContent.hidden, status: status.textContent })
+        });
+      }
+    </script>
+  </body>
+</html>
