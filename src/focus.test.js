@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { FocusEngine, PET_ARCHETYPES, PIXEL_COMPANION_IDS, PIXEL_V3_FRAME_COUNTS, FAWN_FRENCHIE_FRAME_COUNTS, getPetActionFrameImage, PIXEL_V4_TRANSITION_FRAME_COUNTS, PIXEL_ACCESSORY_ASSETS, ACCESSORY_ACTION_POSES, ACCESSORIES_ENABLED, WARDROBE_ITEMS, GIFT_REGISTRY, UNLOCK_RECIPES, TRASH_REGISTRY, CatAudioSynthesizer, PET_AUDIO_CANDIDATES } from "./focus.js";
+import { FocusEngine, PET_ARCHETYPES, PIXEL_COMPANION_IDS, PIXEL_V3_FRAME_COUNTS, FAWN_FRENCHIE_FRAME_COUNTS, CORGI_FRAME_COUNTS, CORGI_TRANSITION_COUNTS, getPetActionFrameImage, getPetTransitionFrameImage, PIXEL_V4_TRANSITION_FRAME_COUNTS, PIXEL_ACCESSORY_ASSETS, ACCESSORY_ACTION_POSES, ACCESSORIES_ENABLED, WARDROBE_ITEMS, GIFT_REGISTRY, UNLOCK_RECIPES, TRASH_REGISTRY, CatAudioSynthesizer, PET_AUDIO_CANDIDATES } from "./focus.js";
 
 describe("Focus Companion Engine", () => {
   beforeEach(() => {
@@ -85,7 +85,7 @@ describe("Focus Companion Engine", () => {
   });
 
   it("provides a dedicated pixel animation pack for every companion model", () => {
-    expect(Object.keys(PET_ARCHETYPES)).toHaveLength(20);
+    expect(Object.keys(PET_ARCHETYPES)).toHaveLength(21);
     expect([...PIXEL_COMPANION_IDS].sort()).toEqual(
       Object.keys(PET_ARCHETYPES).sort(),
     );
@@ -130,6 +130,38 @@ describe("Focus Companion Engine", () => {
     for (let frame = 0; frame < 4; frame++) {
       expect(existsSync(resolve(process.cwd(), "public", "assets", "pixel_companions_v7", "frames", `dog_french_fawn_settle_${frame}.png`))).toBe(true);
     }
+  });
+
+  it("routes every corgi pose and transition to its own grounded frame pack", () => {
+    const petId = "dog_corgi_golden";
+    expect(PET_ARCHETYPES[petId].species).toBe("dog");
+    expect(UNLOCK_RECIPES[petId]).toBeDefined();
+    for (const [action, count] of Object.entries(CORGI_FRAME_COUNTS)) {
+      for (let frame = 0; frame < count; frame++) {
+        expect(existsSync(resolve(process.cwd(), "public", "assets", "pixel_companions_v9", "frames", `${petId}_${action}_${frame}.png`))).toBe(true);
+        expect(getPetActionFrameImage(petId, action, frame).src).toContain(`pixel_companions_v9/frames/${petId}_${action}_${frame}.png`);
+      }
+    }
+    for (const [action, count] of Object.entries(CORGI_TRANSITION_COUNTS)) {
+      for (let frame = 0; frame < count; frame++) {
+        expect(existsSync(resolve(process.cwd(), "public", "assets", "pixel_companions_v9", "frames", `${petId}_${action}_${frame}.png`))).toBe(true);
+        expect(getPetTransitionFrameImage(petId, action, frame).src).toContain(`pixel_companions_v9/frames/${petId}_${action}_${frame}.png`);
+      }
+    }
+  });
+
+  it("runs when dragged and settles without dangling or changing foot surface", () => {
+    const engine = new FocusEngine({ allUnlocked: true, initialPetId: "dog_corgi_golden" });
+    engine.startDangle();
+    expect(engine.currentAction).toBe("run");
+    expect(engine.petY).toBe(0);
+    engine.endDangle();
+    expect(engine.currentAction).toBe("rest");
+    expect(engine.isDangling).toBe(false);
+    engine.setAction("sit", 1500);
+    engine.setAction("idle", 0);
+    expect(engine.currentAction).toBe("rest");
+    expect(engine.visualTransition?.clip).toBe("sit_end");
   });
 
   it("animates the fawn Frenchie in a real run cycle while dragged", () => {
@@ -347,7 +379,7 @@ describe("Focus Companion Engine", () => {
     expect(engine.walkOffset).not.toBe(initialOffset);
   });
 
-  it.each(["dog_french_fawn", "dog_french_black"])("uses the shared furniture physics for %s", (petId) => {
+  it.each(["dog_french_fawn", "dog_french_black", "dog_corgi_golden"])("uses the shared furniture physics for %s", (petId) => {
     const engine = new FocusEngine({ allUnlocked: true });
     expect(engine.equip("pet", petId)).toBe(true);
     expect(engine.getPetFootInset(petId)).toBe(engine.getPetFootInset("cat_white"));
@@ -488,6 +520,7 @@ describe("Focus Companion Engine", () => {
     expect(engine.unlockedItems.cat_siamese_kitten).toBe(true);
     expect(engine.unlockedItems.dog_french_fawn).toBe(true);
     expect(engine.unlockedItems.dog_french_black).toBe(true);
+    expect(engine.unlockedItems.dog_corgi_golden).toBe(true);
     expect(engine.unlockedItems.straw_hat).toBeFalsy();
     expect(engine.unlockedItems.skin_detective).toBeFalsy();
     expect(localStorage.getItem("lumpaFocusUnlockedV1")).toBeNull();

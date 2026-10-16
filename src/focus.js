@@ -143,6 +143,16 @@ export const PET_ARCHETYPES = {
     sprite: "assets/pixel_companions_v3/frames/dog_french_black_idle_0.png",
     pose: "sit"
   },
+  dog_corgi_golden: {
+    id: "dog_corgi_golden",
+    name: "元气柯基",
+    baseColor: "#FFAD4F",
+    species: "dog",
+    desc: "橘白花纹、超大立耳和短短的小腿，喜欢跑跳、闻闻和打滚的开心柯基。",
+    unlocked: true,
+    sprite: "assets/pixel_companions_v9/frames/dog_corgi_golden_idle_0.png",
+    pose: "stand"
+  },
   cat_pointed_fluffy: {
     id: "cat_pointed_fluffy",
     name: "奶茶重点色",
@@ -237,6 +247,7 @@ export const COMPANION_RIG_STYLES = Object.freeze({
   wolf_cub:            { body: "#aeb8c1", accent: "#f3f4f2", dark: "#5c6873", eye: "#6cc2d8", pattern: "wolf", shape: "athletic", species: "wolf", signature: "walk" },
   dog_french_fawn:     { body: "#e9b56d", accent: "#fff6e4", dark: "#393334", eye: "#302729", pattern: "soft", shape: "chubby", species: "dog", signature: "play" },
   dog_french_black:    { body: "#2b2c2d", accent: "#b48380", dark: "#191a1b", eye: "#f8f1e3", pattern: "soft", shape: "chubby", species: "dog", signature: "pounce" },
+  dog_corgi_golden:    { body: "#ffad4f", accent: "#fff9e9", dark: "#4c261b", eye: "#3c2119", pattern: "soft", shape: "athletic", species: "dog", signature: "play" },
   cat_pointed_fluffy:  { body: "#e9d8bd", accent: "#675049", eye: "#60b7dc", pattern: "points", shape: "fluffy", signature: "sleep" },
   cat_ginger_smile:    { body: "#ffe1b5", accent: "#d87731", eye: "#57402d", pattern: "tabby", shape: "round", blush: true, signature: "wash" },
   cat_chubby_loaf:     { body: "#d8c1a4", accent: "#8c705b", eye: "#594635", pattern: "tabby", shape: "chubby", signature: "roll" },
@@ -329,6 +340,7 @@ export const UNLOCK_RECIPES = Object.freeze({
   wolf_cub: { acorn: 6, pocket_watch: 1 },
   dog_french_fawn: { cookie: 5, acorn: 3 },
   dog_french_black: { coffee_beans: 5, clover: 1 },
+  dog_corgi_golden: { cookie: 5, daisy: 3 },
   cat_pointed_fluffy: { cookie: 6, honey_pot: 1 },
   cat_ginger_smile: { daisy: 4, cookie: 4 },
   cat_chubby_loaf: { acorn: 5, honey_pot: 1 },
@@ -390,6 +402,7 @@ export const PET_AUDIO_PROFILES = Object.freeze({
   wolf_cub:             { semitones: -6, gain: 0.70, rate: 0.84, wave: "sine" },
   dog_french_fawn:      { semitones: -2, gain: 0.74, rate: 0.96, wave: "sine" },
   dog_french_black:     { semitones: -4, gain: 0.72, rate: 0.91, wave: "sine" },
+  dog_corgi_golden:     { semitones: 1, gain: 0.72, rate: 1.06, wave: "sine" },
   cat_pointed_fluffy:   { semitones: -1, gain: 0.73, rate: 0.97, wave: "sine" },
   cat_ginger_smile:     { semitones: 2, gain: 0.76, rate: 1.05, wave: "triangle" },
   cat_siamese_kitten:   { semitones: 7, gain: 0.67, rate: 1.17, wave: "triangle" },
@@ -430,7 +443,7 @@ export const PET_AUDIO_CANDIDATES = Object.freeze({
   }),
 });
 
-const PET_AUDIO_KIND = Object.freeze({ fox_fire: "fox", wolf_cub: "wolf", dog_french_fawn: "dog", dog_french_black: "dog" });
+const PET_AUDIO_KIND = Object.freeze({ fox_fire: "fox", wolf_cub: "wolf", dog_french_fawn: "dog", dog_french_black: "dog", dog_corgi_golden: "dog" });
 const DEFAULT_AUDIO_KEYS = Object.freeze({
   gentle: "meow_gentle",
   curious: "meow_curious",
@@ -759,6 +772,12 @@ export const FAWN_FRENCHIE_FRAME_COUNTS = Object.freeze({
 
 const FAWN_DAILY_ACTIONS = Object.freeze(["sit", "wag", "curious", "yawn"]);
 const FAWN_TRANSITION_COUNTS = Object.freeze({ settle: 4, sniff_end: 4, bow_end: 4, sit_end: 4, wag_end: 4, curious_end: 4, yawn_end: 4 });
+const REFINED_DOG_IDS = new Set(["dog_french_fawn", "dog_corgi_golden"]);
+export const CORGI_FRAME_COUNTS = Object.freeze({
+  ...FAWN_FRENCHIE_FRAME_COUNTS,
+  pounce: 4, jump: 3, land: 1, wash: 1, play: 1, roll: 1,
+  stretch: 1, look: 4, sleep: 2, dangle: 2, focusing: 4,
+});
 
 const PIXEL_V3_ACTION_ALIASES = Object.freeze({
   run: "walk",
@@ -779,6 +798,19 @@ const PIXEL_V3_ACTION_ALIASES = Object.freeze({
 
 export function getPetActionFrameImage(petId, action, frameIdx = 0) {
   const archetype = PIXEL_COMPANION_SET.has(petId) ? petId : "cat_white";
+  if (archetype === "dog_corgi_golden") {
+    const resolved = Object.hasOwn(CORGI_FRAME_COUNTS, action) ? action : PIXEL_V3_ACTION_ALIASES[action] || "idle";
+    const act = Object.hasOwn(CORGI_FRAME_COUNTS, resolved) ? resolved : "idle";
+    const safeIdx = Math.max(0, Math.floor(frameIdx || 0)) % CORGI_FRAME_COUNTS[act];
+    const cacheKey = `pixel-v9:${archetype}:${act}:${safeIdx}`;
+    if (spriteImageCache.has(cacheKey)) return spriteImageCache.get(cacheKey);
+    const img = new Image();
+    img.__lumpaSmooth = false;
+    img.onerror = () => { img.onerror = null; img.src = `assets/pixel_companions_v9/frames/${archetype}_idle_0.png`; };
+    img.src = `assets/pixel_companions_v9/frames/${archetype}_${act}_${safeIdx}.png`;
+    spriteImageCache.set(cacheKey, img);
+    return img;
+  }
   if (archetype === "dog_french_fawn" && Object.hasOwn(FAWN_FRENCHIE_FRAME_COUNTS, action)) {
     const version = FAWN_DAILY_ACTIONS.includes(action) ? "v8" : action === "walk" || action === "run" ? "v6" : ["sniff", "bow", "rest"].includes(action) ? "v7" : "v5";
     const safeIdx = Math.max(0, Math.floor(frameIdx || 0)) % FAWN_FRENCHIE_FRAME_COUNTS[action];
@@ -828,9 +860,22 @@ export const PIXEL_V4_TRANSITION_FRAME_COUNTS = Object.freeze({
   stretch_start: 1,
   recover: 1,
 });
+export const CORGI_TRANSITION_COUNTS = Object.freeze({ ...PIXEL_V4_TRANSITION_FRAME_COUNTS, ...FAWN_TRANSITION_COUNTS });
 
 export function getPetTransitionFrameImage(petId, action, frameIdx = 0) {
   const archetype = PIXEL_COMPANION_SET.has(petId) ? petId : "cat_white";
+  if (archetype === "dog_corgi_golden") {
+    const clip = Object.hasOwn(CORGI_TRANSITION_COUNTS, action) ? action : "recover";
+    const safeIdx = Math.max(0, Math.floor(frameIdx || 0)) % CORGI_TRANSITION_COUNTS[clip];
+    const cacheKey = `pixel-v9:${archetype}:${clip}:${safeIdx}`;
+    if (spriteImageCache.has(cacheKey)) return spriteImageCache.get(cacheKey);
+    const img = new Image();
+    img.__lumpaSmooth = false;
+    img.onerror = () => { img.onerror = null; img.src = `assets/pixel_companions_v9/frames/${archetype}_idle_0.png`; };
+    img.src = `assets/pixel_companions_v9/frames/${archetype}_${clip}_${safeIdx}.png`;
+    spriteImageCache.set(cacheKey, img);
+    return img;
+  }
   if (archetype === "dog_french_fawn" && Object.hasOwn(FAWN_TRANSITION_COUNTS, action)) {
     const sourceAction = action.replace("_end", "");
     const safeIdx = Math.max(0, Math.floor(frameIdx || 0)) % 4;
@@ -1419,6 +1464,14 @@ export class FocusEngine {
       for (let frame = 0; frame < count; frame++) getPetTransitionFrameImage("dog_french_fawn", action, frame);
     }
     for (let frame = 0; frame < 4; frame++) getPetTransitionFrameImage("dog_french_fawn", "settle", frame);
+    // Corgi frames live in their own pack; load before switching pets so the
+    // first action never flashes an unrelated or incomplete frame.
+    for (const [action, count] of Object.entries(CORGI_FRAME_COUNTS)) {
+      for (let frame = 0; frame < count; frame++) getPetActionFrameImage("dog_corgi_golden", action, frame);
+    }
+    for (const [action, count] of Object.entries(CORGI_TRANSITION_COUNTS)) {
+      for (let frame = 0; frame < count; frame++) getPetTransitionFrameImage("dog_corgi_golden", action, frame);
+    }
   }
 
   loadFurnitureScene() {
@@ -1945,7 +1998,7 @@ export class FocusEngine {
   startDangle() {
     this.isDangling = true;
     this.isLanding = false;
-    if (this.equipped.petId === "dog_french_fawn") {
+    if (REFINED_DOG_IDS.has(this.equipped.petId)) {
       this.isGroundJumping = false;
       this.isClimbing = false;
       this.isClimbingCatTree = false;
@@ -1956,7 +2009,7 @@ export class FocusEngine {
       this.setAction("run", 0);
       this.visualTransition = null;
       this.actionFrameDelay = 0;
-      this.onSubtitleTrigger?.("小法斗迈开短腿，跟着你快跑起来！", "gentle");
+      this.onSubtitleTrigger?.(this.equipped.petId === "dog_corgi_golden" ? "小柯基迈开短腿，跟着你快跑起来！" : "小法斗迈开短腿，跟着你快跑起来！", "gentle");
     } else {
       this.setAction("dangle", 0);
       this.catAudio.playMeow("whine");
@@ -1969,8 +2022,8 @@ export class FocusEngine {
     this.isDangling = false;
     this.isLanding = true;
     this.landingProgress = 1.0;
-    this.setAction(this.equipped.petId === "dog_french_fawn" ? "rest" : "land", 900);
-    if (this.equipped.petId !== "dog_french_fawn") {
+    this.setAction(REFINED_DOG_IDS.has(this.equipped.petId) ? "rest" : "land", 900);
+    if (!REFINED_DOG_IDS.has(this.equipped.petId)) {
       this.catAudio.playMeow("purr");
       this.onSubtitleTrigger?.("稳稳四脚着地！抖了抖小绒毛～", "purr");
     }
@@ -2146,7 +2199,7 @@ export class FocusEngine {
 
     // The fawn Frenchie has its own extra poses; never inject them into the
     // other nineteen companions' action graphs.
-    if (this.equipped.petId === "dog_french_fawn" && Math.random() < 0.48) {
+    if (REFINED_DOG_IDS.has(this.equipped.petId) && Math.random() < 0.48) {
       const choices = ["sniff", "bow", "greet", ...FAWN_DAILY_ACTIONS];
       const action = choices[Math.floor(Math.random() * choices.length)];
       this.setAction(action, (action === "sit" ? 2600 : 1700) + Math.round(Math.random() * 800));
@@ -2208,15 +2261,15 @@ export class FocusEngine {
 
   setAction(action, duration = 0) {
     const previous = this.currentAction || "idle";
-    const isFawn = this.equipped.petId === "dog_french_fawn";
-    if (isFawn && action === "idle" && ["walk", "run", "sniff", "bow", "land", "rest", ...FAWN_DAILY_ACTIONS].includes(previous)) action = "rest";
+    const isRefinedDog = REFINED_DOG_IDS.has(this.equipped.petId);
+    if (isRefinedDog && action === "idle" && ["walk", "run", "sniff", "bow", "land", "rest", ...FAWN_DAILY_ACTIONS].includes(previous)) action = "rest";
     let clip = null;
     let transitionDuration = 0;
     let frameSequence = null;
-    if (isFawn && ["walk", "run"].includes(previous) && action !== previous) {
+    if (isRefinedDog && ["walk", "run"].includes(previous) && action !== previous) {
       clip = "settle";
       transitionDuration = previous === "run" ? 280 : 320;
-    } else if (isFawn && ["sniff", "bow", ...FAWN_DAILY_ACTIONS].includes(previous) && action !== previous) {
+    } else if (isRefinedDog && ["sniff", "bow", ...FAWN_DAILY_ACTIONS].includes(previous) && action !== previous) {
       clip = `${previous}_end`;
       const current = Math.max(0, this.actionFrame) % 4;
       frameSequence = current === 3 && previous !== "sit" ? [3, 0] : Array.from({ length: current + 1 }, (_, index) => current - index);
@@ -2245,11 +2298,11 @@ export class FocusEngine {
     this.currentAction = action;
     this.actionStartTime = Date.now();
     this.actionFrameDelay = transitionDuration;
-    if (isFawn) {
+    if (isRefinedDog) {
       this.actionFrame = 0;
       if (action === "walk" && previous !== "walk") this.walkVelocity = 0;
     }
-    this.actionDuration = duration > 0 && isFawn ? duration + transitionDuration : duration;
+    this.actionDuration = duration > 0 && isRefinedDog ? duration + transitionDuration : duration;
     this.lastAutonomousActionTime = Date.now();
   }
 
@@ -2276,7 +2329,7 @@ export class FocusEngine {
     const isFocusing = this.state === "focusing";
     // Keep the paws planted while anticipation/recovery frames play. Moving
     // the root before those poses finish makes the pet visibly skate.
-    if (this.equipped.petId === "dog_french_fawn" && this.visualTransition && now - this.actionStartTime < this.actionFrameDelay) {
+    if (REFINED_DOG_IDS.has(this.equipped.petId) && this.visualTransition && now - this.actionStartTime < this.actionFrameDelay) {
       this.actionFrame = 0;
       return;
     }
@@ -2289,7 +2342,7 @@ export class FocusEngine {
         // 阶段 1: 蓄力压低身体，小爪紧抓地面
         this.currentAction = "pounce";
         this.actionFrame = Math.min(3, Math.floor((t / 0.22) * 4));
-        this.petY = 4;
+        this.petY = REFINED_DOG_IDS.has(this.equipped.petId) ? 0 : 4;
       } else if (t < 0.82) {
         // 阶段 2: 真实抛物线腾空跃起
         const flightT = (t - 0.22) / 0.60;
@@ -2428,9 +2481,9 @@ export class FocusEngine {
 
     // 5. 如果处于被鼠标拎起状态
     if (this.isDangling) {
-      if (this.equipped.petId === "dog_french_fawn") {
+      if (REFINED_DOG_IDS.has(this.equipped.petId)) {
         this.currentAction = "run";
-        this.actionFrame = Math.floor((now - this.actionStartTime) / 65) % FAWN_FRENCHIE_FRAME_COUNTS.run;
+        this.actionFrame = Math.floor((now - this.actionStartTime) / 65) % (this.equipped.petId === "dog_corgi_golden" ? CORGI_FRAME_COUNTS.run : FAWN_FRENCHIE_FRAME_COUNTS.run);
       } else {
         this.currentAction = "dangle";
         this.actionFrame = (this.frameCount % 30 > 15) ? 1 : 0;
@@ -2445,7 +2498,7 @@ export class FocusEngine {
       if (Math.abs(dx) > 1.5) {
         this.facing = dx > 0 ? 1 : -1;
         let speed = 0.95;
-        if (this.equipped.petId === "dog_french_fawn") {
+        if (REFINED_DOG_IDS.has(this.equipped.petId)) {
           const desired = 0.95 * Math.min(1, Math.abs(dx) / 14);
           this.walkVelocity += (desired - this.walkVelocity) * Math.min(1, 0.18 * tick);
           speed = this.walkVelocity;
@@ -2492,26 +2545,26 @@ export class FocusEngine {
     }
 
     // 8. 定格动画帧节奏分频器 (Stop-Motion Frame Stepper)
-    const isFawn = this.equipped.petId === "dog_french_fawn";
-    const poseClock = isFawn ? Math.max(0, now - this.actionStartTime - this.actionFrameDelay) : now;
+    const isRefinedDog = REFINED_DOG_IDS.has(this.equipped.petId);
+    const poseClock = isRefinedDog ? Math.max(0, now - this.actionStartTime - this.actionFrameDelay) : now;
     if (this.currentAction === "walk") {
-      this.actionFrame = Math.floor(poseClock / (isFawn ? 85 : 130)) % (isFawn ? FAWN_FRENCHIE_FRAME_COUNTS.walk : 4);
+      this.actionFrame = Math.floor(poseClock / (isRefinedDog ? 85 : 130)) % (isRefinedDog ? FAWN_FRENCHIE_FRAME_COUNTS.walk : 4);
     } else if (this.currentAction === "run") {
-      this.actionFrame = Math.floor(poseClock / (isFawn ? 65 : 90)) % (isFawn ? FAWN_FRENCHIE_FRAME_COUNTS.run : 4);
+      this.actionFrame = Math.floor(poseClock / (isRefinedDog ? 65 : 90)) % (isRefinedDog ? FAWN_FRENCHIE_FRAME_COUNTS.run : 4);
     } else if (this.currentAction === "sniff") {
       this.actionFrame = Math.floor(poseClock / 240) % FAWN_FRENCHIE_FRAME_COUNTS.sniff;
     } else if (this.currentAction === "bow") {
       this.actionFrame = Math.floor(poseClock / 220) % FAWN_FRENCHIE_FRAME_COUNTS.bow;
     } else if (this.currentAction === "rest") {
       this.actionFrame = [0, 0, 0, 2, 0, 1, 0, 3][Math.floor(poseClock / 300) % 8];
-    } else if (isFawn && this.currentAction === "sit") {
+    } else if (isRefinedDog && this.currentAction === "sit") {
       // Sit once and hold; replaying the descent would make the pet bounce.
       this.actionFrame = Math.min(3, Math.floor(poseClock / 160));
-    } else if (isFawn && this.currentAction === "wag") {
+    } else if (isRefinedDog && this.currentAction === "wag") {
       this.actionFrame = Math.floor(poseClock / 130) % 4;
-    } else if (isFawn && this.currentAction === "curious") {
+    } else if (isRefinedDog && this.currentAction === "curious") {
       this.actionFrame = [0, 1, 2, 2, 1, 3][Math.floor(poseClock / 220) % 6];
-    } else if (isFawn && this.currentAction === "yawn") {
+    } else if (isRefinedDog && this.currentAction === "yawn") {
       this.actionFrame = Math.min(3, Math.floor(poseClock / 320));
     } else if (this.currentAction === "wash") {
       this.actionFrame = Math.floor((now / 220) % 4);
@@ -2724,7 +2777,7 @@ export class FocusEngine {
    */
   drawPetContactShadow(ctx, cx, groundY, sceneType = this.currentFurnitureScene) {
     const isAirborne = this.isGroundJumping || this.isClimbing || this.isJumpingDown ||
-      this.isClimbingCatTree || this.isJumpingDownTree || (this.isDangling && this.equipped.petId !== "dog_french_fawn");
+      this.isClimbingCatTree || this.isJumpingDownTree || (this.isDangling && !REFINED_DOG_IDS.has(this.equipped.petId));
     let surfaceOffset = 0;
     if (!isAirborne && sceneType === "desk" && this.onDesk) {
       surfaceOffset = this.getDeskSurfaceOffset();
@@ -3351,7 +3404,7 @@ export class FocusEngine {
       Math.round(cy + this.petY),
     );
 
-    if (this.isDangling && pet.id !== "dog_french_fawn") {
+    if (this.isDangling && !REFINED_DOG_IDS.has(pet.id)) {
       ctx.rotate(Math.sin(this.frameCount * 0.1) * 0.06);
     } else if (this.tiltEffect > 0) {
       ctx.rotate((this.facing >= 0 ? 1 : -1) * 0.10);

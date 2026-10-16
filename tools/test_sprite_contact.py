@@ -26,6 +26,16 @@ class SpriteContactTests(unittest.TestCase):
             with self.subTest(frame=path.name), Image.open(path) as image:
                 self.assertEqual(main_component_bounds(image)[3], 232)
 
+    def test_corgi_frames_are_transparent_and_share_the_furniture_contact_line(self):
+        root = Path(__file__).resolve().parents[1] / "public/assets/pixel_companions_v9/frames"
+        frames = sorted(root.glob("dog_corgi_golden_*.png"))
+        self.assertGreaterEqual(len(frames), 100)
+        for path in frames:
+            with self.subTest(frame=path.name), Image.open(path) as image:
+                self.assertEqual(image.size, (256, 256))
+                self.assertEqual(image.getpixel((0, 0))[3], 0)
+                self.assertEqual(main_component_bounds(image)[3], 232)
+
 
 if __name__ == "__main__":
     unittest.main()

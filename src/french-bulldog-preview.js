@@ -2,7 +2,8 @@ import { FocusEngine } from "./focus.js";
 
 const canvas = document.querySelector("#preview-stage");
 const status = document.querySelector("#status");
-const frenchBulldogIds = new Set(["dog_french_fawn", "dog_french_black"]);
+const previewDogIds = new Set(["dog_french_fawn", "dog_french_black", "dog_corgi_golden"]);
+const refinedDogIds = new Set(["dog_french_fawn", "dog_corgi_golden"]);
 const engine = new FocusEngine({ allUnlocked: true });
 
 // 预览不改动主应用的已选宠物、场景或声音设置。
@@ -70,7 +71,7 @@ document.querySelectorAll("[data-scene]").forEach((button) => button.addEventLis
 
 const actions = {
   flow: () => {
-    if (engine.equipped.petId !== "dog_french_fawn") return;
+    if (!refinedDogIds.has(engine.equipped.petId)) return;
     engine.startDangle();
     later(1300, () => engine.endDangle());
     later(2300, () => engine.setAction("sniff", 1600));
@@ -83,17 +84,17 @@ const actions = {
     later(16300, () => engine.setAction("rest", 0));
   },
   run: () => {
-    if (engine.equipped.petId !== "dog_french_fawn") return;
+    if (!refinedDogIds.has(engine.equipped.petId)) return;
     engine.startDangle();
     later(2300, () => engine.endDangle());
   },
-  sniff: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("sniff", 2300),
-  bow: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("bow", 2300),
-  greet: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("greet", 2300),
-  sit: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("sit", 3200),
-  wag: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("wag", 2300),
-  curious: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("curious", 2300),
-  yawn: () => engine.equipped.petId === "dog_french_fawn" && engine.setAction("yawn", 1900),
+  sniff: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("sniff", 2300),
+  bow: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("bow", 2300),
+  greet: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("greet", 2300),
+  sit: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("sit", 3200),
+  wag: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("wag", 2300),
+  curious: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("curious", 2300),
+  yawn: () => refinedDogIds.has(engine.equipped.petId) && engine.setAction("yawn", 1900),
   walk: () => engine.triggerWalkRoam(),
   jump: () => engine.triggerGroundJump(true),
   roll: () => engine.triggerRollPlay(),
@@ -117,7 +118,7 @@ const selectedPet = params.get("pet");
 const selectedScene = params.get("scene");
 const selectedAction = params.get("action");
 const snapshot = params.get("snapshot");
-if (frenchBulldogIds.has(selectedPet)) {
+if (previewDogIds.has(selectedPet)) {
   document.querySelector(`[data-pet="${selectedPet}"]`)?.click();
 }
 if (["desk", "cattree", "clean"].includes(selectedScene)) {

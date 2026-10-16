@@ -800,6 +800,13 @@
       persona: "你是一只黑色的小法斗，有大大的立耳和圆圆的眼睛。安静却机灵，喜欢守在工位旁陪主人专注，回复简短温柔。",
     },
     {
+      id: "dog_corgi_golden",
+      name: "元气柯基",
+      species: "dog",
+      presetKey: "energy",
+      persona: "你是一只橘白毛色、巨大立耳和小短腿的开心柯基。喜欢迈小碎步、好奇地嗅闻和快乐打滚，回复简短活泼。",
+    },
+    {
       id: "cat_pointed_fluffy",
       name: "奶茶重点色",
       species: "cat",
@@ -809,11 +816,11 @@
   ];
 
   const starterPetById = new Map(starterPets.map((pet) => [pet.id, pet]));
-  const frenchBulldogIds = new Set(["dog_french_fawn", "dog_french_black"]);
+  const builtInDogIds = new Set(["dog_french_fawn", "dog_french_black", "dog_corgi_golden"]);
   const launchDefaultPetId = "dog_french_fawn";
   function builtInPetSprite(pet) {
-    return frenchBulldogIds.has(pet?.id)
-      ? `assets/pixel_companions_${pet.id === launchDefaultPetId ? "v5" : "v3"}/frames/${pet.id}_idle_0.png`
+    return builtInDogIds.has(pet?.id)
+      ? `assets/pixel_companions_${pet.id === "dog_corgi_golden" ? "v9" : pet.id === launchDefaultPetId ? "v5" : "v3"}/frames/${pet.id}_idle_0.png`
       : "";
   }
 
@@ -1366,7 +1373,7 @@
           })
         : [];
       state.pets = pets.length ? pets : starterPets.map(normalizePet);
-      const newBuiltInPets = starterPets.filter((pet) => frenchBulldogIds.has(pet.id) && !state.pets.some((saved) => saved.id === pet.id));
+      const newBuiltInPets = starterPets.filter((pet) => builtInDogIds.has(pet.id) && !state.pets.some((saved) => saved.id === pet.id));
       state.pets.push(...newBuiltInPets.map(normalizePet));
       state.pets.forEach((pet) => refreshPetCare(pet));
       state.activePetId = String(stored.activePetId || state.pets[0]?.id || "");
