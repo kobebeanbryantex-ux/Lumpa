@@ -177,3 +177,8 @@ cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 ~~~
+
+
+### 1.0.11 LAN desktop preview
+
+The current preview adds offline rooms, native desktop dragging, friend codes and desktop invitations, a bundled Windows LAN host, and Xiangqi. See [the two-computer trial guide](docs/局域网双人试玩-1.0.11.md). Use Node v24.16.0 and run `npm run desktop:prepare` before native compilation. The generated runtime ZIP and user data are excluded from source control.

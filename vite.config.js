@@ -6,11 +6,14 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 4173,
     strictPort: true,
+    proxy: {
+      "/social": { target: "http://127.0.0.1:4180", ws: true },
+    },
     headers: {
       "Content-Security-Policy": [
         "default-src 'self'",
         "base-uri 'none'",
-        "connect-src ipc: http://ipc.localhost",
+        "connect-src 'self' ipc: http://ipc.localhost http: ws: https: wss:",
         "font-src 'self'",
         "frame-ancestors 'none'",
         "img-src 'self' data: blob:",
@@ -27,6 +30,7 @@ export default defineConfig({
     target: "es2022",
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: { input: { main: "index.html", friends: "friends.html", freePet: "free-pet.html", launcher: "launcher.html" } },
   },
   test: {
     environment: "jsdom",

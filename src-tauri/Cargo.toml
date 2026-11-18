@@ -1,6 +1,6 @@
 [package]
 name = "rabbit-desk-pet"
-version = "1.0.8"
+version = "1.0.11"
 description = "Rabbit desktop pet"
 authors = ["songz"]
 edition = "2021"

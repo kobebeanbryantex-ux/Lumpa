@@ -1,0 +1,4 @@
+html, body { margin: 0; background: transparent; overflow: hidden; }
+#free-pet { padding: 0; border: 0; background: transparent; width: 84px; height: 84px; cursor: grab; touch-action: none; }
+#free-pet:active { cursor: grabbing; }
+canvas { width: 84px; height: 84px; image-rendering: pixelated; pointer-events: none; }

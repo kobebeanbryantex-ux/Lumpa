@@ -50,3 +50,7 @@ PACKAGE_MANIFEST.sha256.txt
 # This buildless generator keeps its actual source in dist/.
 !pet-generator-web/dist/
 !pet-generator-web/dist/**
+
+.social-data/
+
+src-tauri/social-runtime.zip

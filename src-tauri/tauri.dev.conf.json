@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Lumpa Dev",
+  "productName": "Lumpa Dev 1.0.11",
   "identifier": "com.songz.lumpa.dev",
   "app": {
     "windows": [
       {
         "label": "main",
-        "title": "Lumpa Dev",
+        "title": "Lumpa Dev 1.0.11",
         "width": 1180,
         "height": 760,
         "maximized": true,
@@ -18,14 +18,18 @@
         "alwaysOnTop": false,
         "skipTaskbar": false,
         "shadow": true,
-        "center": true
+        "center": true,
+        "visible": false,
+        "url": "launcher.html"
       }
     ]
   },
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["lumpa-dev"]
+        "schemes": [
+          "lumpa-dev"
+        ]
       }
     }
   },

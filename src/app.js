@@ -1,4 +1,9 @@
+import { drawWalkingPet, makeWalkCycle, stepWalk, warmWalk } from "./pet-walk.js";
+import { attachSharedFocus } from "./shared-focus.js";
+
 (function () {
+  let nativePetDrag = false;
+  const floatingWalk = makeWalkCycle();
   const frames = [
     "assets/rabbit/talk_closed.png",
     "assets/rabbit/talk_tiny.png",
@@ -4702,6 +4707,7 @@ function bindWorldButtonsDirectly() {
   function ensureFocusEngine() {
     if (!focusInstance && window.FocusEngine) {
       focusInstance = new window.FocusEngine({ allUnlocked: previewUnlockAllPets, initialPetId: launchDefaultPetId });
+      attachSharedFocus(focusInstance);
     }
     return focusInstance;
   }
@@ -4945,6 +4951,7 @@ function bindWorldButtonsDirectly() {
     let petMoved = false;
 
     canvas.onpointerdown = (e) => {
+      if (e.button !== 0) return;
       e.stopPropagation();
       isDownOnPet = true;
       petStartX = e.screenX;
@@ -4955,14 +4962,24 @@ function bindWorldButtonsDirectly() {
     };
 
     canvas.onpointermove = (e) => {
-      if (e.buttons === 0 && engine.isDangling) {
-        engine.endDangle();
+      if (e.buttons === 0 && (isDownOnPet || engine.isDangling)) {
+        if (engine.isDangling) engine.endDangle();
         isDownOnPet = false;
         canvas.classList.remove("grabbing");
         return;
       }
       if (isDownOnPet) {
         if (Math.hypot(e.screenX - petStartX, e.screenY - petStartY) > 4) {
+          if (isTauriRuntime() && petDock.classList.contains("mini")) {
+            if (!petMoved) {
+              petMoved = true;
+              if (!readSettingsForm().positionLocked) {
+                try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+                startTauriDrag();
+              }
+            }
+            return;
+          }
           if (!petMoved) {
             petMoved = true;
             // 奶油法斗改为原生逐帧奔跑，其他宠物保留原有悬空动作。
@@ -4970,9 +4987,6 @@ function bindWorldButtonsDirectly() {
           }
           if (engine.equipped.petId === launchDefaultPetId && Math.abs(e.movementX) > 0.5) {
             engine.facing = e.movementX > 0 ? 1 : -1;
-          }
-          if (isTauriRuntime() && petDock.classList.contains("mini")) {
-            startTauriDrag();
           }
         }
       }
@@ -4983,10 +4997,10 @@ function bindWorldButtonsDirectly() {
       canvas.classList.remove("grabbing");
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       if (isDownOnPet) {
-        if (petMoved) {
+        if (petMoved && engine.isDangling) {
           // 放在桌面落地 (Land!)
           engine.endDangle();
-        } else {
+        } else if (!petMoved) {
           // 单击互动 (Jump + Hearts / Stretch / Roam)
           triggerPetInteraction();
         }
@@ -5044,6 +5058,17 @@ function bindWorldButtonsDirectly() {
         // 透明帧底部的一小格，因此脚掌不会再悬在家具或地面上方。
         const sceneCy = Math.round(h - 30);
         const petCy = sceneCy + engine.getPetFootInset(activePet.id);
+        if (floatingWalk.pet !== activePet.id) {
+          floatingWalk.pet = activePet.id;
+          warmWalk(activePet.id);
+        }
+        if (nativePetDrag || performance.now() < floatingWalk.until) {
+          engine.drawRoomFurniture(ctx, cx, sceneCy, isFocusing, false, false, false);
+          if (drawWalkingPet(ctx, activePet.id, cx, sceneCy, 170 * engine.getPetGrowthInfo(activePet.id).scale,
+            floatingWalk, performance.now() < floatingWalk.until) && rabbitImg) rabbitImg.style.display = "none";
+          floatingPetAnimId = requestAnimationFrame(loop);
+          return;
+        }
         const isCatAboveDesk = engine.onDesk || engine.isClimbing || engine.petY < -12;
         const isCatOnTree = engine.onCatTree || engine.isClimbingCatTree;
         const isSkeletonActive = canUseSkeleton &&
@@ -5613,6 +5638,14 @@ function bindWorldButtonsDirectly() {
   }
 
   function setActivePage(page) {
+    if (page === "focus") {
+      if (isTauriRuntime()) {
+        invokeTauri("open_social_window").catch(error => setBubble(String(error)));
+      } else {
+        window.location.assign("./friends.html");
+      }
+      return;
+    }
     const targetPage = ["desk", "world", "focus", "library", "usage", "create", "settings"].includes(page) ? page : "desk";
     document.body.dataset.page = targetPage;
 
@@ -5978,26 +6011,42 @@ function bindWorldButtonsDirectly() {
     return syncTauriStartMode();
   }
 
-  function startTauriDrag() {
-    if (!isTauriRuntime()) return;
+  async function startTauriDrag() {
+    if (!isTauriRuntime() || nativePetDrag) return;
     if (readSettingsForm().positionLocked) {
       setBubble("位置已锁定，先在浮窗上点“解”或去设置里关闭锁定。");
       return;
     }
 
-    invokeTauri("start_window_drag").catch((error) => {
+    nativePetDrag = true;
+    try {
+      const anchorSample = await invokeTauri("desktop_drag_sample");
+      let [lastX, lastY, , , pressed] = anchorSample;
+      if (!pressed) {
+        if (!/Windows/i.test(navigator.userAgent)) await invokeTauri("start_window_drag");
+        return;
+      }
+      const anchor = anchorSample.slice(0, 4);
+      const deadline = performance.now() + 30000;
+      while (pressed && performance.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 22));
+        const [x, y, , , holding] = await invokeTauri("desktop_drag_sample", { anchor });
+        const scale = window.devicePixelRatio || 1;
+        stepWalk(floatingWalk, Math.hypot(x - lastX, y - lastY) / scale, (x - lastX) / scale, performance.now());
+        lastX = x;
+        lastY = y;
+        pressed = holding;
+      }
+      const engine = ensureFocusEngine();
+      if (engine) engine.facing = floatingWalk.facing;
+      if (readSettingsForm().desktopGravity === "snap-edge") {
+        await syncTauriDesktopOptions(readSettingsForm(), { applyPosition: true });
+      }
+    } catch (error) {
       console.warn("Tauri drag failed:", error);
-    });
-  }
-
-  function scheduleSnapAfterDrag() {
-    if (!isTauriRuntime()) return;
-    const settings = readSettingsForm();
-    if (settings.desktopGravity !== "snap-edge") return;
-
-    window.setTimeout(() => {
-      syncTauriDesktopOptions(readSettingsForm(), { applyPosition: true });
-    }, 900);
+    } finally {
+      nativePetDrag = false;
+    }
   }
 
   function closeFloatingWindow() {
@@ -6495,7 +6544,6 @@ function bindWorldButtonsDirectly() {
       if (isTauriRuntime() && petDock.classList.contains("mini")) {
         event.preventDefault();
         startTauriDrag();
-        scheduleSnapAfterDrag();
         return;
       }
 
@@ -7328,8 +7376,20 @@ function bindWorldButtonsDirectly() {
     event.preventDefault();
     event.stopPropagation();
     startTauriDrag();
-    scheduleSnapAfterDrag();
   });
+
+  for (const id of ["socialLaunch", "floatSocial"]) {
+    document.getElementById(id)?.addEventListener("click", () => {
+      if (isTauriRuntime()) {
+        try {
+          localStorage.setItem("lumpa.social.preferredPet", ensureFocusEngine()?.equipped.petId || launchDefaultPetId);
+        } catch (_) {}
+        invokeTauri("open_social_window").catch(error => setBubble(String(error)));
+      } else {
+        window.open("./friends.html", "_blank", "noopener");
+      }
+    });
+  }
 
   floatLock.addEventListener("click", (event) => {
     event.preventDefault();
