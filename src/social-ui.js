@@ -35,10 +35,11 @@ let expandedDesktop;
 const personal = loadPersonalParks();
 let detached = false;
 let nativePetReady = false, dockQueued = false, dockInFlight = false, closing = false;
+let returningPet = false;
 let dockTimer;
 let desktopInvite, xiangqiFrom = -1, requestedPresentation, lanInfo;
 let guestsQueued = false;
-const companion = new FocusEngine({ allUnlocked: true, initialPetId: initialPet() });
+const companion = new FocusEngine({ allUnlocked: true, initialPetId: initialPet(), preload: false });
 const focusSession = attachSharedFocus(companion);
 
 if (desktop) {
@@ -142,8 +143,8 @@ async function dockPet() {
     localStorage.setItem("lumpa.freePet.pet", item.pet);
     if (!nativePetReady) localStorage.setItem("lumpa.freePet.free", "0");
     await native("open_park_pet", { position: [rect.x + rect.width / 2 - 42, rect.y + rect.height * 119 / 128 - 81.1] });
-    nativePetReady = true;
-    document.body.classList.add("native-pet-ready");
+    // Keep the scene pet visible until the separate window confirms that it
+    // has actually drawn the selected model, rather than merely being created.
   } finally { dockInFlight = false; if(dockQueued)queueDockPet(); }
 }
 window.addEventListener("resize", queueDockPet);
@@ -175,6 +176,11 @@ function setView(next) {
   updateParkDisplay();
   resizeDesktop();
 }
+function returnToDesk() {
+  clientStorage.setItem(stateKey(`desk-background.${room}`), "0");
+  setView("desk");
+  closePanel();
+}
 function toggleDesktopBackground() {
   clientStorage.setItem(stateKey(`desk-background.${room}`), desktopBackground() ? "0" : "1");
   setView("desk");
@@ -185,7 +191,7 @@ function updateParkDisplay() {
   document.body.classList.toggle("park-full", full);
   document.body.classList.toggle("desk-view", view === "desk");
   document.body.classList.toggle("panel-open", Boolean(page));
-  $("view-switch").textContent = view === "park" ? (desktop ? "收回桌边" : "桌面预览") : "打开乐园";
+  $("view-switch").textContent = full ? (desktop ? "收回桌边" : "桌面预览") : "打开乐园";
   $("park-edit").hidden = !room || owner !== me;
   $("share").hidden = !overview.rooms.find(row => row.id === room)?.invite;
   const current = draft?.design || design;
@@ -581,6 +587,12 @@ function upsertAvatar(data) {
     item.pet = data.pet;
     item.last = "";
     warmWalk(item.pet);
+    if (data.id === me && desktop) {
+      nativePetReady = false;
+      document.body.classList.remove("native-pet-ready");
+      localStorage.setItem("lumpa.freePet.pet", item.pet);
+      if (!detached) queueDockPet();
+    }
   }
   item.data = data;
   if (data.id !== me) syncGuestWindows();
@@ -732,16 +744,16 @@ function renderRooms(root) {
   const offline = el("div", null, "actions park-quick");
   offline.append(button("我的离线乐园", () => { enterPersonal(); closePanel(); }));
   if (!online) offline.append(button("连接好友", () => openPanel("connect")));
-  if (detached) offline.append(button("叫宠物回家", returnPet));
+  if (desktop || detached) offline.append(button("叫宠物回家", async () => { await returnPet(); closePanel(); }));
   if (desktop) offline.append(button("打开主界面", () => native("show_main_window")));
   root.append(offline);
   if (game && !game.result) root.append(button("继续对局", () => openPanel("game"), "primary"));
   if (gameInvite?.expires > Date.now()) root.append(button("查看对战邀请", () => openPanel("challenge")));
   if (room) {
     const quick = el("div", null, "actions park-quick");
-    quick.append(button(view === "park" ? "收回桌边" : "打开乐园", () => {
-      setView(view === "park" ? "desk" : "park");
-      closePanel();
+    quick.append(button(showsBackdrop() ? "收回桌边" : "打开乐园", () => {
+      if (view === "park" || showsBackdrop()) returnToDesk();
+      else { setView("park"); closePanel(); }
     }), button("换宠物", () => openPanel("pets")),
     button("工位伴读", () => openPanel("focus")),
     button(desktopBackground() ? "关闭桌面背景" : "应用背景到桌面", toggleDesktopBackground));
@@ -1000,13 +1012,17 @@ focusSession.subscribe(session => {
     if (session?.state === "reward") toast("专注完成，宠物又长大一点。");
   }
 });
-function returnPet() {
+async function returnPet() {
+  if (returningPet || closing) return;
+  returningPet = true;
   detached = false;
   nativePetReady = false;
   document.body.classList.remove("native-pet-ready");
   localStorage.setItem("lumpa.freePet.free", "0");
   localStorage.setItem("lumpa.freePet.active", "0");
-  native("return_park_pet").then(queueDockPet).catch(error => toast(String(error)));
+  try { await native("return_park_pet"); queueDockPet(); }
+  catch (error) { toast(String(error)); }
+  finally { returningPet = false; }
   const item = avatars.get(me);
   if (item) { item.y = item.data.y = 0; publish(item, false); }
 }
@@ -1019,8 +1035,21 @@ async function detachPet(item) {
   catch (error) { detached = false; localStorage.setItem("lumpa.freePet.active", "0"); toast(String(error)); }
 }
 window.addEventListener("storage", event => {
+  if (event.key === "lumpaFocusEquipped" && event.newValue) {
+    try {
+      const pet = JSON.parse(event.newValue).petId;
+      const item = avatars.get(me);
+      if (PET_ARCHETYPES[pet] && item && item.pet !== pet) {
+        companion.equipped.petId = pet;
+        localStorage.setItem("lumpa.social.preferredPet", pet);
+        upsertAvatar({ ...item.data, pet });
+        if (online) transmit("profile.pet", { pet });
+      }
+    } catch {}
+  }
   if (event.key === "lumpa.freePet.free" && event.newValue === "1") detached = true;
   if (event.key === "lumpa.freePet.action" && event.newValue?.startsWith("select:")) openPanel("pets");
+  if (event.key === "lumpa.freePet.action" && event.newValue?.startsWith("return:")) returnPet();
   if (event.key === "lumpa.freePet.action" && event.newValue?.startsWith("person:")) openPanel("person", event.newValue.split(":")[1]);
   if (event.key === "lumpa.freePet.active" && event.newValue === "0") returnPet();
   if (event.key === "lumpa.freePet.position" && detached) {
@@ -1229,14 +1258,18 @@ $("focus-toggle").onclick = $("focus-mini").onclick = () => openPanel("focus");
 $("share").onclick = () => openPanel("share");
 $("my-pet").onclick = () => openPanel("pets");
 $("park-edit").onclick = startDesign;
-$("view-switch").onclick = () => setView(view === "park" ? "desk" : "park");
+$("view-switch").onclick = () => view === "park" || showsBackdrop() ? returnToDesk() : setView("park");
 $("panel-close").onclick = closePanel;
 $("desktop-close").onclick = () => {
   closing = true;
-  localStorage.setItem("lumpa.freePet.active", "0");
-  native("close_social_window").catch(error => toast(String(error)));
+  clearTimeout(dockTimer);
+  native("close_social_window").catch(error => { closing = false; toast(String(error)); });
 };
-window.addEventListener("keydown", event => { if (event.key === "Escape" && page) closePanel(); });
+window.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  if (page) closePanel();
+  else if (showsBackdrop()) returnToDesk();
+});
 window.addEventListener("pagehide", () => {
   clearTimeout(retry);
   clearTimeout(connectTimer);
@@ -1244,6 +1277,28 @@ window.addEventListener("pagehide", () => {
   socket = null;
   connection?.close();
 });
+if (desktop) {
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    await listen("lumpa-pet-ready", event => {
+      if (!closing && event.payload === avatars.get(me)?.pet) {
+        nativePetReady = true;
+        document.body.classList.add("native-pet-ready");
+      }
+    });
+    await listen("lumpa-social-visibility", event => {
+      closing = !event.payload;
+      if (closing) { clearTimeout(dockTimer); return; }
+      nativePetReady = false;
+      document.body.classList.remove("native-pet-ready");
+      closePanel();
+      setView("desk");
+      if (detached) native("open_park_pet").catch(error => toast(String(error)));
+      else queueDockPet();
+      syncGuestWindows();
+    });
+  } catch (error) { console.warn("Native window events unavailable", error); }
+}
 enterPersonal();
 if (inviteCode) openPanel("connect");
 if (inviteCode && savedName && clientStorage.getItem(stateKey("session"))) connect(savedName);
@@ -1252,3 +1307,4 @@ else if (desktop && savedName && clientStorage.getItem("lumpa.lan.hostEnabled") 
 } else if (desktop && savedName && clientStorage.getItem(stateKey("session"))) connect(savedName);
 updateParkDisplay();
 resizeDesktop();
+if (desktop) native("social_frontend_ready").catch(console.warn);

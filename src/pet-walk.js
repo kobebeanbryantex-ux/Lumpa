@@ -17,8 +17,10 @@ export function stepWalk(walk, distance, dx, now) {
 }
 
 export function warmWalk(pet) {
-  for (let frame = 0; frame < 4; frame++) getPetActionFrameImage(pet, "idle", frame);
-  for (let frame = 0; frame < (refined.has(pet) ? 8 : 4); frame++) getPetActionFrameImage(pet, "walk", frame);
+  const images = [];
+  for (let frame = 0; frame < 4; frame++) images.push(getPetActionFrameImage(pet, "idle", frame));
+  for (let frame = 0; frame < (refined.has(pet) ? 8 : 4); frame++) images.push(getPetActionFrameImage(pet, "walk", frame));
+  return images;
 }
 
 function footRow(image) {

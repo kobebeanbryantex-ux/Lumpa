@@ -5638,14 +5638,6 @@ function bindWorldButtonsDirectly() {
   }
 
   function setActivePage(page) {
-    if (page === "focus") {
-      if (isTauriRuntime()) {
-        invokeTauri("open_social_window").catch(error => setBubble(String(error)));
-      } else {
-        window.location.assign("./friends.html");
-      }
-      return;
-    }
     const targetPage = ["desk", "world", "focus", "library", "usage", "create", "settings"].includes(page) ? page : "desk";
     document.body.dataset.page = targetPage;
 

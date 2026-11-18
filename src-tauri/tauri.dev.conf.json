@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Lumpa Dev 1.0.11",
+  "productName": "Lumpa Dev 1.0.12",
   "identifier": "com.songz.lumpa.dev",
   "app": {
     "windows": [
       {
         "label": "main",
-        "title": "Lumpa Dev 1.0.11",
+        "title": "Lumpa Dev 1.0.12",
         "width": 1180,
         "height": 760,
         "maximized": true,

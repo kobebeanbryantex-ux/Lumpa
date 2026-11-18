@@ -14,13 +14,16 @@ use std::{
     collections::{HashMap, VecDeque},
     io::Cursor,
     process::Command,
-    sync::Mutex,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
     time::{Duration, Instant},
 };
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
+    Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_notification::NotificationExt;
@@ -29,6 +32,12 @@ use url::Url;
 const MAIN_WINDOW: &str = "main";
 static SOCIAL_WINDOW_OPEN: tauri::async_runtime::Mutex<()> =
     tauri::async_runtime::Mutex::const_new(());
+#[derive(Default)]
+struct SocialWindowState {
+    visible: AtomicBool,
+    frontend_ready: AtomicBool,
+    pet_dragging: AtomicBool,
+}
 const BASE_FLOATING_WIDTH: f64 = 320.0;
 const BASE_FLOATING_HEIGHT: f64 = 300.0;
 const BASE_FLOATING_MIN_WIDTH: f64 = 260.0;
@@ -383,17 +392,18 @@ impl Default for UsageState {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run() -> tauri::Result<()> {
     let builder = tauri::Builder::default()
         .manage(StartModeState::default())
         .manage(ModelStopState::default())
         .manage(UsageState::default())
         .manage(social_lan::LanHostState::default())
+        .manage(SocialWindowState::default())
         .manage(gateway_client::GatewaySessionState::default());
 
     #[cfg(not(debug_assertions))]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-        show_window(app);
+        request_show_window(app);
         for arg in argv {
             handle_deep_link_url(app, &arg);
         }
@@ -431,9 +441,13 @@ pub fn run() {
             setup_tray(app).map_err(|error| error.to_string())?;
 
             #[cfg(any(windows, target_os = "linux"))]
-            app.deep_link()
-                .register_all()
-                .map_err(|error| error.to_string())?;
+            if let Err(error) = app.deep_link().register_all() {
+                app.state::<diagnostics::DiagnosticState>().log(
+                    "warn",
+                    "deep_link_registration",
+                    &error.to_string(),
+                );
+            }
 
             let app_handle = app.handle().clone();
 
@@ -455,7 +469,22 @@ pub fn run() {
 
             let social_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let _ = open_social_window(social_app).await;
+                if let Err(error) = open_social_window(social_app.clone()).await {
+                    social_app.state::<diagnostics::DiagnosticState>().log(
+                        "error",
+                        "social_start",
+                        &error,
+                    );
+                    show_window(&social_app);
+                }
+                tokio::time::sleep(Duration::from_secs(10)).await;
+                if !social_app
+                    .state::<SocialWindowState>()
+                    .frontend_ready
+                    .load(Ordering::Acquire)
+                {
+                    show_window(&social_app);
+                }
             });
             Ok(())
         })
@@ -474,6 +503,8 @@ pub fn run() {
             desktop_drag_sample,
             open_social_window,
             show_main_window,
+            social_frontend_ready,
+            park_pet_ready,
             social_lan::start_lan_host,
             social_lan::discover_lan_hosts,
             social_lan::stop_lan_host,
@@ -525,10 +556,11 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "social" {
-                    for (label, pet) in window.app_handle().webview_windows() {
-                        if label == "park-pet" || label.starts_with("park-guest-") {
-                            let _ = pet.destroy();
-                        }
+                    api.prevent_close();
+                    if let Some(social) = window.app_handle().get_webview_window("social") {
+                        tauri::async_runtime::spawn(async move {
+                            let _ = close_social_window(social).await;
+                        });
                     }
                     return;
                 }
@@ -536,13 +568,13 @@ pub fn run() {
                 let _ = window.hide();
             }
         })
-        .build(tauri::generate_context!())
-        .expect("error while building Lumpa")
+        .build(tauri::generate_context!())?
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
                 social_lan::shutdown(app);
             }
         });
+    Ok(())
 }
 
 #[derive(Debug, Serialize)]
@@ -705,9 +737,14 @@ fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {
         .tooltip("Lumpa")
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
-            "show" => show_window(app),
+            "show" => request_show_window(app),
             "hide" => hide_window(app),
-            "settings" => open_settings_window(app),
+            "settings" => {
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    open_settings_window(&app);
+                });
+            }
             "disable_click" => disable_click_through(app),
             "quit" => app.exit(0),
             _ => {}
@@ -718,7 +755,7 @@ fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {
                 ..
             } = event
             {
-                show_window(tray.app_handle());
+                request_show_window(tray.app_handle());
             }
 
             if let TrayIconEvent::Click {
@@ -727,7 +764,7 @@ fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {
                 ..
             } = event
             {
-                show_window(tray.app_handle());
+                request_show_window(tray.app_handle());
             }
         });
 
@@ -742,6 +779,13 @@ fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {
 
 fn main_window(app: &tauri::AppHandle) -> Option<tauri::WebviewWindow> {
     app.get_webview_window(MAIN_WINDOW)
+}
+
+fn request_show_window(app: &tauri::AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        show_window(&app);
+    });
 }
 
 fn show_window(app: &tauri::AppHandle) {
@@ -824,7 +868,7 @@ fn load_main_ui(window: &tauri::WebviewWindow, query: Option<&str>) {
     }
 }
 #[tauri::command]
-fn show_main_window(app: tauri::AppHandle) {
+async fn show_main_window(app: tauri::AppHandle) {
     show_window(&app);
 }
 
@@ -3278,12 +3322,12 @@ impl IfEmpty for String {
 }
 
 #[tauri::command]
-fn set_window_mode(window: tauri::WebviewWindow, mode: String) -> Result<(), String> {
+async fn set_window_mode(window: tauri::WebviewWindow, mode: String) -> Result<(), String> {
     apply_window_mode(&window, mode == "floating")
 }
 
 #[tauri::command]
-fn apply_desktop_options(
+async fn apply_desktop_options(
     window: tauri::WebviewWindow,
     options: DesktopOptions,
 ) -> Result<(), String> {
@@ -3341,6 +3385,12 @@ async fn desktop_drag_sample(
         let mut cursor = POINT::default();
         unsafe { GetCursorPos(&mut cursor) }.map_err(|error| error.to_string())?;
         let pressed = unsafe { GetAsyncKeyState(i32::from(VK_LBUTTON.0)) < 0 };
+        if window.label() == "park-pet" {
+            window
+                .state::<SocialWindowState>()
+                .pet_dragging
+                .store(pressed, Ordering::Release);
+        }
         let mut position = window.outer_position().map_err(|error| error.to_string())?;
         if let Some([window_x, window_y, cursor_x, cursor_y]) = anchor {
             if pressed {
@@ -3401,7 +3451,11 @@ fn size_social_window(window: &tauri::WebviewWindow, expanded: bool) -> Result<(
 async fn open_social_window(app: tauri::AppHandle) -> Result<(), String> {
     let _open = SOCIAL_WINDOW_OPEN.lock().await;
     if let Some(window) = app.get_webview_window("social") {
+        app.state::<SocialWindowState>()
+            .visible
+            .store(true, Ordering::Release);
         window.show().map_err(|error| error.to_string())?;
+        let _ = window.emit("lumpa-social-visibility", true);
         return window.set_focus().map_err(|error| error.to_string());
     }
     let window = tauri::WebviewWindowBuilder::new(
@@ -3409,7 +3463,7 @@ async fn open_social_window(app: tauri::AppHandle) -> Result<(), String> {
         "social",
         tauri::WebviewUrl::App("friends.html".into()),
     )
-    .title("Lumpa · 伴读乐园 1.0.11")
+    .title("Lumpa · 伴读乐园 1.0.12")
     .transparent(true)
     .decorations(false)
     // On Windows, a shadow also draws a border around an undecorated window.
@@ -3421,11 +3475,17 @@ async fn open_social_window(app: tauri::AppHandle) -> Result<(), String> {
     .build()
     .map_err(|error| error.to_string())?;
     size_social_window(&window, false)?;
+    app.state::<SocialWindowState>()
+        .visible
+        .store(true, Ordering::Release);
     window.show().map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn set_social_window_expanded(window: tauri::WebviewWindow, expanded: bool) -> Result<(), String> {
+async fn set_social_window_expanded(
+    window: tauri::WebviewWindow,
+    expanded: bool,
+) -> Result<(), String> {
     if window.label() != "social" {
         return Err("只适用于好友小屋窗口。".to_string());
     }
@@ -3433,19 +3493,22 @@ fn set_social_window_expanded(window: tauri::WebviewWindow, expanded: bool) -> R
 }
 
 #[tauri::command]
-fn close_social_window(window: tauri::WebviewWindow) -> Result<(), String> {
+async fn close_social_window(window: tauri::WebviewWindow) -> Result<(), String> {
     if window.label() != "social" {
         return Err("只适用于好友小屋窗口。".to_string());
     }
-    if let Some(pet) = window.app_handle().get_webview_window("park-pet") {
-        let _ = pet.destroy();
-    }
+    let _open = SOCIAL_WINDOW_OPEN.lock().await;
+    window
+        .state::<SocialWindowState>()
+        .visible
+        .store(false, Ordering::Release);
     for (label, pet) in window.app_handle().webview_windows() {
-        if label.starts_with("park-guest-") {
-            let _ = pet.destroy();
+        if label == "park-pet" || label.starts_with("park-guest-") {
+            let _ = pet.hide();
         }
     }
-    window.destroy().map_err(|error| error.to_string())
+    let _ = window.emit("lumpa-social-visibility", false);
+    window.hide().map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -3454,6 +3517,13 @@ async fn sync_park_guests(window: tauri::WebviewWindow, guests: Vec<Value>) -> R
         return Err("访客窗口无效".into());
     }
     let _open = SOCIAL_WINDOW_OPEN.lock().await;
+    if !window
+        .state::<SocialWindowState>()
+        .visible
+        .load(Ordering::Acquire)
+    {
+        return Ok(());
+    }
     let app = window.app_handle();
     let monitor = window
         .current_monitor()
@@ -3517,8 +3587,20 @@ async fn open_park_pet(
         return Err("请从乐园拖出宠物。".into());
     }
     let _open = SOCIAL_WINDOW_OPEN.lock().await;
+    if !window
+        .state::<SocialWindowState>()
+        .visible
+        .load(Ordering::Acquire)
+    {
+        return Err("乐园已收起".into());
+    }
     if let Some(pet) = window.app_handle().get_webview_window("park-pet") {
-        if let Some([x, y]) = position {
+        if let Some([x, y]) = position.filter(|_| {
+            !window
+                .state::<SocialWindowState>()
+                .pet_dragging
+                .load(Ordering::Acquire)
+        }) {
             let base = window.outer_position().map_err(|e| e.to_string())?;
             let scale = window.scale_factor().map_err(|e| e.to_string())?;
             pet.set_position(tauri::PhysicalPosition::new(
@@ -3527,7 +3609,8 @@ async fn open_park_pet(
             ))
             .map_err(|e| e.to_string())?;
         }
-        return pet.show().map_err(|error| error.to_string());
+        let _ = pet.emit("lumpa-pet-refresh", ());
+        return Ok(());
     }
     let pet = tauri::WebviewWindowBuilder::new(
         window.app_handle(),
@@ -3558,16 +3641,53 @@ async fn open_park_pet(
     };
     pet.set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
         .map_err(|error| error.to_string())?;
-    pet.show().map_err(|error| error.to_string())
+    Ok(())
 }
 
 #[tauri::command]
-fn return_park_pet(window: tauri::WebviewWindow) -> Result<(), String> {
+async fn return_park_pet(window: tauri::WebviewWindow) -> Result<(), String> {
     if !["social", "park-pet"].contains(&window.label()) {
         return Err("只适用于乐园宠物。".into());
     }
+    let _open = SOCIAL_WINDOW_OPEN.lock().await;
+    window
+        .state::<SocialWindowState>()
+        .pet_dragging
+        .store(false, Ordering::Release);
     if let Some(pet) = window.app_handle().get_webview_window("park-pet") {
-        pet.destroy().map_err(|error| error.to_string())?;
+        pet.hide().map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn social_frontend_ready(window: tauri::WebviewWindow) -> Result<(), String> {
+    if window.label() != "social" {
+        return Err("窗口无效".into());
+    }
+    window
+        .state::<SocialWindowState>()
+        .frontend_ready
+        .store(true, Ordering::Release);
+    Ok(())
+}
+
+#[tauri::command]
+async fn park_pet_ready(window: tauri::WebviewWindow, pet: String) -> Result<(), String> {
+    if window.label() != "park-pet" {
+        return Err("窗口无效".into());
+    }
+    let _open = SOCIAL_WINDOW_OPEN.lock().await;
+    if window
+        .state::<SocialWindowState>()
+        .visible
+        .load(Ordering::Acquire)
+    {
+        window.show().map_err(|error| error.to_string())?;
+        window
+            .app_handle()
+            .emit_to("social", "lumpa-pet-ready", pet)
+            .map_err(|error| error.to_string())?;
     }
     Ok(())
 }
@@ -3625,13 +3745,13 @@ async fn social_window_geometry(window: tauri::WebviewWindow) -> Result<Value, S
         .ok_or("没有显示器")?;
     let area = monitor.work_area();
     Ok(
-        json!({"position":{"x":position.x,"y":position.y},"size":{"width":size.width,"height":size.height},
+        json!({"visible":window.is_visible().map_err(|e| e.to_string())?,"position":{"x":position.x,"y":position.y},"size":{"width":size.width,"height":size.height},
         "scale":monitor.scale_factor(),"workArea":{"x":area.position.x,"y":area.position.y,"width":area.size.width,"height":area.size.height}}),
     )
 }
 
 #[tauri::command]
-fn close_window(window: tauri::WebviewWindow) -> Result<(), String> {
+async fn close_window(window: tauri::WebviewWindow) -> Result<(), String> {
     window.hide().map_err(|error| error.to_string())
 }
 

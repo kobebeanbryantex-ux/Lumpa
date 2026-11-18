@@ -16,7 +16,7 @@ async function attach(endpoint){
  const logs=[];
  ws.addEventListener("message",event=>{const packet=JSON.parse(event.data);if(packet.method==='Runtime.consoleAPICalled')logs.push(packet.params.args.map(arg=>arg.description||arg.value).join(' '));if(packet.method==='Runtime.exceptionThrown')logs.push(packet.params.exceptionDetails.exception?.description);const reply=pending.get(packet.id);if(!reply)return;pending.delete(packet.id);packet.error?reply.reject(new Error(packet.error.message)):reply.resolve(packet.result);});
  await new Promise((resolve,reject)=>{ws.addEventListener("open",resolve,{once:true});ws.addEventListener("error",reject,{once:true});});
- const cmd=(method,params={})=>new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
+ const cmd=(method,params={})=>new Promise((resolve,reject)=>{const id=++seq;const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Native debugger timed out: '+method));},30000);pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});ws.send(JSON.stringify({id,method,params}));});
  const js=async expression=>{const r=await cmd("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.exception?.description||expression);return r.result.value;};
  await cmd('Runtime.enable');
  return {cmd,js,logs};
@@ -41,6 +41,44 @@ try {
  assert(Math.abs(corner.position.x+corner.size.width-(area.x+area.width))<=12*corner.scale,"The scene is not aligned to the right edge.");
  assert(Math.abs(corner.position.y+corner.size.height-(area.y+area.height))<=12*corner.scale,"The scene is not aligned to the bottom edge.");
  assert(corner.size.width/corner.scale<=561,"The compact scene is still too wide.");
+ // Regression: the original focus page must remain reachable while the
+ // independent scene is alive, including cross-window pet changes.
+ await invoke(social,'show_main_window');
+ await until(()=>target('index.html'),'The original main window did not open.');
+ const main=await attach((await target('index.html')).webSocketDebuggerUrl);
+ await until(()=>main.js("Boolean(window.LumpaApp)"),'Main UI did not finish loading.',300);
+ await main.js("document.querySelector('[data-page-target=focus]').click()");
+ await until(()=>main.js("document.body.dataset.page==='focus'&&document.querySelector('[data-page-view=focus]').classList.contains('active')&&document.querySelectorAll('#petArchetypeGrid .pet-archetype-card').length>10"),'The original focus page is still intercepted.');
+ const focusShot=await main.cmd('Page.captureScreenshot',{format:'png'});
+ writeFileSync(join(dir,'original-focus-page.png'),Buffer.from(focusShot.data,'base64'));
+ for(const id of ['dog_corgi_golden','dog_french_fawn']) {
+   await main.js(`document.querySelector('#petArchetypeGrid img[src*="${id}_idle"]').closest('.pet-archetype-card').click()`);
+   await until(()=>pet.js(`localStorage.getItem('lumpa.freePet.pet')===${JSON.stringify(id)}`),'A main-window pet change did not reach the desktop pet.');
+   await until(()=>social.js("document.body.classList.contains('native-pet-ready')"),'Changed pet did not report a drawn frame.');
+ }
+ // Regression: returning from a park clears any applied background and
+ // actually restores the compact window, not only the label on its button.
+ for(let attempt=0;attempt<3;attempt++) {
+   await social.js("document.querySelector('#view-switch').click()");
+   await until(async()=>{const g=await geometry(social);return g.size.height/g.scale>300;},'Park did not expand.');
+   await social.js("window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
+   await until(async()=>{const g=await geometry(social);return g.size.height/g.scale<=168;},'Park did not collapse.');
+   await social.js("document.querySelector('#desktop-close').click()");
+   await until(async()=>!(await geometry(social)).visible&&!(await geometry(pet)).visible,'Closing the park left a visible scene or pet.');
+   await sleep(250);
+   assert.equal((await geometry(pet)).visible,false,'A late docking callback resurrected the closed pet.');
+   await main.js("document.querySelector('#socialLaunch').click()");
+   await until(async()=>{const g=await geometry(pet);return g.visible&&await social.js("document.body.classList.contains('native-pet-ready')");},'Reopening the park lost its pet.');
+ }
+ await social.js("document.querySelector('#room-toggle').click()");
+ await click(social,'应用背景到桌面');
+ await until(()=>social.js("document.body.classList.contains('park-full')&&document.querySelector('#view-switch').textContent==='收回桌边'"),'Applied desktop background did not expose its return control.');
+ await social.js("document.querySelector('#view-switch').click()");
+ await until(async()=>!await social.js("document.body.classList.contains('park-full')")&&(await geometry(social)).size.height/(await geometry(social)).scale<=168,'Returning from an applied background left the window expanded.');
+ await social.cmd('Page.reload');
+ await until(()=>social.js("Boolean(document.querySelector('.mine'))&&document.body.classList.contains('native-pet-ready')"),'Reloading the scene left the pet blank.');
+ await until(()=>pet.js("typeof document.querySelector('button').onpointerdown==='function'"),'Pet lost its drag handler after reopening.');
+ await invoke(main,'close_window');
  const original=await geometry(pet);
  const pixelRatio=await pet.js("devicePixelRatio");console.log('Native pet geometry',JSON.stringify({original,pixelRatio,inner:await pet.js('[innerWidth,innerHeight]')}));
  const before=await pet.js("document.querySelector('canvas').toDataURL()");
@@ -62,6 +100,18 @@ try {
  await pet.js("document.querySelector('button').dispatchEvent(new MouseEvent('dblclick'))");
  await until(()=>social.js("localStorage.getItem('lumpa.freePet.free')==='0'"),"Double-click did not return the pet home.");
  await sleep(500);
+ for(let repeat=0;repeat<2;repeat++) {
+   await until(async()=>{
+     const position=await geometry(pet),parent=await geometry(social);
+     return position.visible&&position.position.y>=parent.position.y&&await social.js("localStorage.getItem('lumpa.freePet.free')==='0'");
+   },'Pet did not redock between repeated physical drags.');
+   const position=await geometry(pet);
+   const nextX=Math.round(area.width*(repeat ? .65 : .30)),nextY=Math.round(area.height*(repeat ? .5 : .3));
+   const repeatInput=spawn('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',resolve('scripts/qa-native-input.ps1'),'-ExpectedPid',String(app.pid),'-FromX',String(Math.round(position.position.x+buttonX*pixelRatio)),'-FromY',String(Math.round(position.position.y+buttonY*pixelRatio)),'-ToX',String(nextX),'-ToY',String(nextY)],{windowsHide:true,stdio:['ignore','inherit','inherit']});
+   await new Promise((resolve,reject)=>{repeatInput.once('error',reject);repeatInput.once('exit',code=>code===0?resolve():reject(new Error('Repeated native drag failed: '+code)));});
+   await until(async()=>Math.abs((await geometry(pet)).position.y-position.position.y)>100,'A later drag was stuck.');
+   await pet.js("document.querySelector('button').dispatchEvent(new MouseEvent('dblclick'))");
+ }
  await social.js("document.querySelector('#room-toggle').click()");await click(social,"连接好友");
  await social.js("document.querySelector('#nickname').value='原生主机'");
  await click(social,"开启局域网房主");
@@ -106,10 +156,14 @@ try {
  await social.js("document.querySelector('#toast').hidden=true");
  await sleep(150);
  execFileSync("powershell.exe",["-NoProfile","-ExecutionPolicy","Bypass","-File",resolve("scripts/qa-native-input.ps1"),"-Screenshot",join(dir,"native-corner.png"),"-X",String(final.position.x),"-Y",String(final.position.y),"-Width",String(final.size.width),"-Height",String(final.size.height)],{windowsHide:true});
- const report={geometry:corner,movedPet:moved,actualDragAnimated:animated,lanAddress:address,discovered:hosts,friendCode:code,desktopVisitor:true,independentGuest:peerPosition};
+ const report={geometry:corner,movedPet:moved,actualDragAnimated:animated,physicalDrags:3,lanAddress:address,discovered:hosts,friendCode:code,desktopVisitor:true,independentGuest:peerPosition,originalFocusPage:true,mainPetSwitch:true,closeReopenCycles:3,reloadedPet:true,appliedBackgroundReturn:true};
  writeFileSync(join(dir,"verification.json"),JSON.stringify(report,null,2));
  console.log("Verified native right/bottom alignment, real mouse full-screen drag and walking, double-click return, bundled LAN host, discovery, LAN-address guest, friend code and desktop invitation.");
  console.log(dir);
+} catch(error) {
+ writeFileSync(join(dir,'failure.json'),JSON.stringify({error:String(error),logs:social?.logs},null,2));
+ console.error('Native regression evidence: '+dir);
+ throw error;
 } finally {
  if(social) {try{await invoke(social,"stop_lan_host");}catch{}}
  for(const channel of channels)channel.close();

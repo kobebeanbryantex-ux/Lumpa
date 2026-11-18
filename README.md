@@ -1,7 +1,11 @@
-# Lumpa 1.0.8 源码
+# Lumpa 1.0.12 源码
 
 本仓库包含当前 Windows 桌面端源码、网页前端、宠物动画素材、账号网关及宠物生成服务代码。
 之前的 GitHub 首页说明保留在 [docs/github-original-readme.md](docs/github-original-readme.md)。
+
+## 1.0.12 稳定性修复
+
+恢复主界面工位伴读原页面，另设桌面乐园按钮；修复宠物换装同步、隐藏窗口重开、收回桌边和全屏拖动状态。原生回归覆盖主界面/乐园反复切换、刷新、真实鼠标拖动和局域网邀请。给朋友使用 Windows x64 完整安装包，缺少 WebView2 时按引导联网安装。详见 [稳定性修复与试玩说明](docs/稳定性修复与试玩-1.0.12.md)。云端检查状态以 Actions 为准，草稿分支尚未合并。
 
 ## 自定义宠物生成器：英文版（2026-10-10）
 
@@ -11,7 +15,7 @@
 - 网站目前仍是演示原型，未连接真实图像生成、支付或下载。价格保留CNY示例；网站访问权限沿用原配置，尚未作为公开商业服务上线。
 - 本次不修改桌面端版本号，不重新生成Windows安装包。后端源码更新不代表已部署远程推理服务。
 
-## 当前版本：1.0.8
+## 1.0.8 动作更新（历史记录）
 
 - 默认宠物为黄色（奶油）法斗；当前验收配置开放全部20种宠物，不代表商业版最终解锁规则。
 - 黄色法斗新增坐下、摇尾、歪头和哈欠，共16张专属动作帧；加入自主行为与点击互动，双击可坐下。
@@ -21,7 +25,7 @@
 
 ### 开发和打包
 
-在项目根目录执行（Windows、Node.js 22+、Rust stable、WebView2）：
+在项目根目录执行（Windows x64、Node.js 24.16.0、Rust stable、WebView2）：
 
 ```powershell
 npm ci
@@ -33,8 +37,7 @@ npm test
 npm run web:verify
 npm run tauri:dev
 
-# 内部验收安装包：RC命令不自动构建前端，必须先执行web:verify。
-npm run web:verify
+# 内部验收安装包：RC命令会构建前端与内置局域网运行包。
 npm run tauri:build:rc
 ```
 
@@ -81,7 +84,7 @@ Lumpa 是 Windows 桌面宠物应用。1.0 将桌面端、账号网关、本地�
 
 ## 本地开发
 
-要求 Windows、Node.js 22、Rust stable 和 WebView2。
+要求 Windows x64、Node.js 24.16.0（与内置运行包版本一致）、Rust stable 和 WebView2。
 
 ~~~powershell
 npm ci
