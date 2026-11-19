@@ -7,6 +7,7 @@ import { gameRules, playMove, createGameBoard } from "../../src/social-games.js"
 import { createSocket } from "node:dgram";
 import { networkInterfaces, hostname } from "node:os";
 import { defaultDesign, normalizeDesign, parkMediaLimit, parkMediaTypes } from "../../src/park-layout.js";
+import { broadcastAddresses, privateIPv4, publicLanUsers } from "./lan-discovery.mjs";
 
 const host = process.env.LUMPA_SOCIAL_HOST || "127.0.0.1";
 const port = Number(process.env.LUMPA_SOCIAL_PORT || 4180);
@@ -27,6 +28,7 @@ const statePath = resolve(dir, "state.json");
 const state = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : {
   users: {}, sessions: {}, rooms: {}, requests: {}, threads: {}, attachments: {},
 };
+state.serverId ||= randomUUID();
 const clients = new Map();
 const invites = new Map();
 const desktopInvites = new Map();
@@ -75,7 +77,7 @@ function send(client, type, payload = {}) {
 const userById = (id) => lookup(state.users, id);
 function profile(id) {
   const user = userById(id);
-  return user && { id, name: user.name, pet: user.pet, online: clients.has(id), code: friendCode(id) };
+  return user && { id, name: user.name, pet: user.pet, device: user.device || null, online: clients.has(id), code: friendCode(id) };
 }
 const friend = (a, b) => userById(a)?.friends.includes(b);
 const canVisit = (room, id) => Boolean(room && (room.members.includes(id) || friend(id, room.owner)));
@@ -94,6 +96,7 @@ function overview(client) {
   const user = userById(id);
   send(client, "overview", {
     self: profile(id),
+    nearby: lan ? publicLanUsers(clients, profile) : [],
     pets: user.pets,
     friends: user.friends.map(who => {
       const info = profile(who);
@@ -112,10 +115,11 @@ function overview(client) {
 function updateOverviews() {
   for (const client of clients.values()) overview(client);
 }
-function homeFor(id) {
+function homeFor(id, initialDesign) {
   let home = Object.values(state.rooms).find(row => row.owner === id && row.home);
   if (!home) {
-    home = { id: randomUUID(), title: `${userById(id).name}的桌面`, owner: id, invite: token(), members: [id], home: true };
+    home = { id: randomUUID(), title: `${userById(id).name}的桌面`, owner: id, invite: token(), members: [id], home: true,
+      design: normalizeDesign(initialDesign) };
     state.rooms[home.id] = home;
     save();
   }
@@ -161,6 +165,15 @@ function handle(client, msg) {
   const id = client.id;
   const who = clean(msg.to, 64);
   switch (msg.type) {
+    case "profile.name": {
+      const name = clean(msg.name, 24);
+      if (!name) throw new Error("请填写昵称。");
+      user.name = name;
+      save();
+      snapshots(client.room);
+      updateOverviews();
+      break;
+    }
     case "room.create": {
       const title = clean(msg.title, 36);
       if (!title || Object.values(state.rooms).filter(row => row.owner === id).length >= 20) throw new Error("请填写房间名。每人最多创建 20 间。");
@@ -391,6 +404,12 @@ function authenticate(req, client, msg) {
     save();
   }
   if (!id || !userById(id)) throw new Error("登录会话无效。");
+  if (clean(msg.name, 24)) userById(id).name = clean(msg.name, 24);
+  // Device IDs deduplicate public LAN cards; they never authenticate a user.
+  if (lan && /^[a-z0-9-]{8,64}$/i.test(msg.device || "")) {
+    userById(id).device = msg.device;
+    save();
+  }
   const previous = clients.get(id);
   client.id = id;
   client.room = previous?.room || null;
@@ -399,7 +418,7 @@ function authenticate(req, client, msg) {
   client.walking = false;
   clients.set(id, client);
   previous?.socket.close(4001, "Opened in another window");
-  send(client, "ready", { session, id, home: msg.home ? homeFor(id).id : null });
+  send(client, "ready", { session, id, home: msg.home ? homeFor(id, msg.homeDesign).id : null });
   snapshots(client.room);
   updateOverviews();
   for (const game of games.values()) if (!game.result && game.players.includes(id)) sendGame(game);
@@ -616,7 +635,8 @@ setInterval(() => {
 server.listen(port, host, () => {
   const actualPort = server.address().port;
   const addresses = Object.values(networkInterfaces()).flat().filter(item => item.family === "IPv4" && !item.internal).map(item => `http://${item.address}:${actualPort}`);
-  const info = { port: actualPort, name: lanName, addresses, version: "1.0.11" };
+  const info = { port: actualPort, name: lanName, addresses, broadcasts: broadcastAddresses(), serverId: state.serverId,
+    version: JSON.parse(readFileSync("package.json", "utf8")).version };
   console.log(`Lumpa Social · http://${host}:${actualPort}/friends.html`);
   if (lan && process.env.LUMPA_SOCIAL_READY_FILE) writeFileSync(process.env.LUMPA_SOCIAL_READY_FILE, JSON.stringify(info));
   if (lan) {
@@ -625,12 +645,15 @@ server.listen(port, host, () => {
     discovery.on("message", (packet, peer) => {
       try {
         const request = JSON.parse(packet.toString());
-        if (request.type === "lumpa-discover" && typeof request.nonce === "string" && request.nonce.length < 80) {
-          discovery.send(JSON.stringify({ type: "lumpa-host", nonce: request.nonce, port: actualPort, name: lanName, version: info.version }), peer.port, peer.address);
+        if (packet.length <= 512 && privateIPv4(peer.address) && request.type === "lumpa-discover" &&
+            typeof request.nonce === "string" && /^[a-z0-9]{16,64}$/i.test(request.nonce) &&
+            budget({ socket: { remoteAddress: peer.address } }, "discovery", 12, 3000)) {
+          discovery.send(JSON.stringify({ type: "lumpa-host", protocol: 2, nonce: request.nonce, port: actualPort,
+            name: lanName, serverId: state.serverId, version: info.version, users: publicLanUsers(clients, profile) }), peer.port, peer.address);
         }
       } catch {}
     });
-    discovery.bind(4189, "0.0.0.0");
+    discovery.bind(Number(process.env.LUMPA_SOCIAL_DISCOVERY_PORT || 4189), "0.0.0.0");
   }
   process.send?.({ type: "ready", port: actualPort, publicTest });
 });

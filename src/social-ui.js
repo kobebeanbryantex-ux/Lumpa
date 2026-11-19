@@ -7,6 +7,7 @@ import { defaultDesign, parkMediaTypes } from "./park-layout.js";
 import { mountParkEditor, placeFurniture, renderParkFurniture } from "./park-view.js";
 import { loadPersonalParks, personalMedia, savePersonalParks } from "./local-park.js";
 import { attachSharedFocus } from "./shared-focus.js";
+import { collectLanUsers, normalizeLanAddress } from "./lan-peers.js";
 
 const $ = (id) => document.getElementById(id);
 const desktop = Boolean(window.__TAURI_INTERNALS__);
@@ -38,6 +39,11 @@ let nativePetReady = false, dockQueued = false, dockInFlight = false, closing = 
 let returningPet = false;
 let dockTimer;
 let desktopInvite, xiangqiFrom = -1, requestedPresentation, lanInfo;
+let lanHosts = [], lanScanning = false, lanStarting = false, lanError = "", lanScannedAt = 0, pendingLanAction;
+const deviceId = clientStorage.getItem("lumpa.lan.device") || (crypto.randomUUID?.() ||
+  [...crypto.getRandomValues(new Uint8Array(16))].map(byte => byte.toString(16).padStart(2, "0")).join(""));
+clientStorage.setItem("lumpa.lan.device", deviceId);
+const lanEnabled = () => clientStorage.getItem("lumpa.lan.enabled") !== "0";
 let guestsQueued = false;
 const companion = new FocusEngine({ allUnlocked: true, initialPetId: initialPet(), preload: false });
 const focusSession = attachSharedFocus(companion);
@@ -63,8 +69,8 @@ function isLocalService(address) {
 }
 function updateWelcome() {
   $("welcome-description").textContent = inviteCode ? "好友邀请你来串门。填个昵称就可以进房。"
-    : isLocalService(service) ? "当前为本机试玩，同一台电脑可以用浏览器和桌面端对战。"
-      : "开一间小屋，用房间码邀请好友坐坐。";
+    : desktop ? "同一 Wi-Fi 的朋友会自动出现在附近列表，无需填写服务地址。"
+      : "打开好友分享的入口，就可以在浏览器里陪伴和对战。";
 }
 updateWelcome();
 
@@ -157,14 +163,15 @@ function privateService(address) {
     return !url.username && !url.password && (url.protocol === "https:" || url.protocol === "http:" && (lan || url.hostname === "localhost"));
   } catch { return false; }
 }
-function joinService(address) {
+function joinService(address, options = {}) {
+  address = normalizeLanAddress(address);
   if (!privateService(address)) throw new Error("请输入局域网地址，例如 192.168.1.8:4185，或 HTTPS 服务地址。");
   service = new URL(address).origin;
   $("server-url").value = service;
   clientStorage.setItem(storeKey, service);
   const name = $("nickname").value.trim() || savedName || "Lumpa玩家";
   clientStorage.setItem("lumpa.social.name", name);
-  connect(name);
+  connect(name, options);
 }
 function stateKey(suffix) { return `lumpa.social.${service}.${suffix}`; }
 function desktopBackground() {
@@ -343,7 +350,7 @@ function initialPet() {
       JSON.parse(clientStorage.getItem("lumpaFocusEquipped") || "{}").petId || "dog_french_fawn";
   } catch { return "dog_french_fawn"; }
 }
-function connect(name) {
+function connect(name, options = {}) {
   clearTimeout(retry);
   clearTimeout(connectTimer);
   const old = socket;
@@ -366,7 +373,8 @@ function connect(name) {
   connectTimer = setTimeout(() => {
     if (socket === connection && !online) connection.close(4000, "Connection timed out");
   }, 8500);
-  connection.addEventListener("open", () => connection.send(JSON.stringify({ type: "hello", name, session, home: true, pet: $("starter-pet").value })));
+  connection.addEventListener("open", () => connection.send(JSON.stringify({ type: "hello", name, session, home: true,
+    homeDesign: personal.parks.find(park => park.id === personal.active)?.design, device: deviceId, pet: $("starter-pet").value })));
   connection.addEventListener("message", event => {
     if (connection !== socket) return;
     const packet = JSON.parse(event.data);
@@ -379,7 +387,7 @@ function connect(name) {
       connectFeedback("");
       $("welcome").hidden = true;
       $("room-toggle").hidden = false;
-      closePanel();
+      if (!options.quiet) closePanel();
       avatars.forEach(item => item.node.remove());
       avatars.clear();
       room = undefined;
@@ -395,14 +403,20 @@ function connect(name) {
     const wasOnline = online;
     online = false;
     drag = null;
-    closePanel();
+    if (pendingLanAction) { pendingLanAction = null; lanError = "未能连上这位朋友，请刷新附近后再试。"; }
+    if (!options.quiet) closePanel();
     enterPersonal();
+    if (options.quiet && ["rooms", "connect"].includes(page)) renderPanel();
     if (event.code === 4001) {
       connectFeedback("这份身份已在另一窗口使用。单机双人测试请用浏览器无痕窗口。");
       toast("联机身份已在另一窗口使用，已回到离线乐园。");
+    } else if (desktop && lanInfo && service !== lanInfo.url && lanEnabled()) {
+      pendingLanAction = null;
+      retry = setTimeout(() => joinService(lanInfo.url, { quiet: true }), 700);
+      lanError = "好友的连接已结束，正在返回自己的桌边。";
     } else if (wasOnline) {
       connectFeedback("连接已断开，正在重连…");
-      retry = setTimeout(() => connect(name), 1800);
+      retry = setTimeout(() => connect(name, options), 1800);
     } else {
       connectFeedback(isLocalService(service) ? "本机试玩服务没连上，启动服务后再试。"
         : "联机服务暂时连不上，请检查网络后重试。");
@@ -414,9 +428,10 @@ $("connect-form").addEventListener("submit", event => {
   event.preventDefault();
   const name = $("nickname").value.trim();
   if (!name) return;
+  const previousService = service;
   if (desktop) {
     try {
-      const url = new URL($("server-url").value);
+      const url = new URL(normalizeLanAddress($("server-url").value));
       if (!privateService(url.href)) throw new Error();
       service = url.origin;
       clientStorage.setItem(storeKey, service);
@@ -424,7 +439,12 @@ $("connect-form").addEventListener("submit", event => {
     } catch { connectFeedback("请填写局域网或 HTTPS 联机地址。"); return; }
   }
   clientStorage.setItem("lumpa.social.name", name);
-  connect(name);
+  if (online && socket?.readyState === 1 && previousService === service) {
+    transmit("profile.name", { name });
+    transmit("profile.pet", { pet: $("starter-pet").value });
+    toast("昵称与宠物已更新。");
+    closePanel();
+  } else connect(name);
 });
 
 function handlePacket(packet) {
@@ -437,7 +457,12 @@ function handlePacket(packet) {
         `房间与好友 · ${overview.requests.length + unread.size}` : "房间与好友";
       updateRoomTitle();
       $("share").hidden = !overview.rooms.find(row => row.id === room)?.invite;
-      if (["rooms", "pets", "person"].includes(page)) renderPanel();
+      if (["rooms", "pets", "person", "nearby"].includes(page)) renderPanel();
+      if (pendingLanAction && pendingLanAction.url === service) {
+        const target = pendingLanAction; pendingLanAction = null;
+        if (overview.friends.some(friend => friend.id === target.id)) openPanel("person", target.id);
+        else { transmit("friend.request", { to: target.id }); openPanel("rooms"); toast("好友申请已发送，等待对方接受。"); }
+      }
       break;
     case "room.presence":
       if (room !== packet.room) {
@@ -705,6 +730,7 @@ function openPanel(next, target = "") {
   renderPanel();
   updateParkDisplay();
   resizeDesktop();
+  if (["rooms", "connect"].includes(next)) scanNearby();
 }
 function closePanel() {
   draft = null;
@@ -732,23 +758,111 @@ function row(label, description, action) {
   line.append(text, action);
   return line;
 }
+function nearbyUsers() {
+  const hosts = Date.now() - lanScannedAt < 16000 ? lanHosts : [];
+  return collectLanUsers([...hosts, { url: service, users: online ? overview.nearby || [] : [] }], deviceId, service, me);
+}
+function refreshNearbyList() {
+  const list = document.querySelector(".nearby-users");
+  if (!list) return;
+  list.replaceChildren();
+  const users = nearbyUsers();
+  const summary = document.querySelector(".lan-state");
+  if (summary) summary.textContent = lanStarting ? "正在开启局域网发现…" : lanScanning ? "正在寻找同一网络里的朋友…"
+    : lanError || (users.length ? `发现 ${users.length} 位在线朋友` : "附近暂时没有朋友上线");
+  if (!users.length) {
+    const empty = el("div", null, "nearby-empty");
+    empty.append(el("span", "◎", "nearby-empty-icon"), el("strong", lanScanning ? "正在寻找朋友" : "等朋友打开 Lumpa"),
+      el("p", desktop ? "双方连接同一 Wi-Fi，打开新版客户端后会自动出现在这里。" : "网页版显示当前连接里的伙伴；发现同一 Wi-Fi 用户需要桌面客户端。", "muted"));
+    list.append(empty);
+  }
+  for (const user of users) {
+    const card = el("article", null, "nearby-person");
+    card.dataset.device = user.device || user.id;
+    const image = el("img"); image.alt = ""; image.src = getPetActionFrameImage(user.pet, "idle", 0).src;
+    const info = el("div", null, "nearby-person-copy");
+    info.append(el("strong", user.name), el("small", "● 在线 · 同一局域网"));
+    const contact = user.url === service && overview.friends.find(contact => contact.id === user.id);
+    const requested = user.url === service && overview.requests.find(contact => contact.id === user.id);
+    const action = contact ? button("邀请到桌面", () => transmit("desktop.invite", { to: user.id }), "primary")
+      : requested ? button("接受好友", () => transmit("friend.reply", { to: user.id, accept: true }), "primary")
+      : button("加好友", () => addNearbyFriend(user), "quiet");
+    action.disabled = Boolean(pendingLanAction);
+    card.append(image, info, action);
+    list.append(card);
+  }
+}
+async function scanNearby() {
+  if (!desktop || !lanEnabled() || lanScanning) return;
+  lanScanning = true; lanError = ""; refreshNearbyList();
+  try {
+    lanHosts = await native("discover_lan_hosts") || [];
+    lanScannedAt = Date.now();
+  } catch (error) { lanError = "暂时未能搜索，请重试或检查专用网络权限。"; console.warn(error); }
+  finally { lanScanning = false; refreshNearbyList(); }
+}
+async function startAutomaticLan() {
+  if (!desktop || lanStarting) return;
+  lanStarting = true; lanError = ""; refreshNearbyList();
+  try {
+    clientStorage.setItem("lumpa.lan.enabled", "1");
+    if (!$("nickname").value.trim()) $("nickname").value = "新朋友 " + deviceId.slice(-4).toUpperCase();
+    clientStorage.setItem("lumpa.social.name", $("nickname").value.trim());
+    lanInfo = await native("start_lan_host");
+    if (!lanInfo?.url) throw new Error("局域网服务未返回地址");
+    if (!online) joinService(lanInfo.url, { quiet: true });
+    await scanNearby();
+  } catch (error) { lanError = "局域网发现暂未开启，点击重新开启；离线宠物仍可使用。"; console.warn(error); }
+  finally { lanStarting = false; refreshNearbyList(); }
+}
+function addNearbyFriend(user) {
+  if (game && !game.result && user.url !== service) { toast("先结束当前对局，再连接附近的新朋友。"); return; }
+  if (user.url === service && online) {
+    transmit("friend.request", { to: user.id });
+    toast("好友申请已发送，等待对方接受。");
+    return;
+  }
+  pendingLanAction = user;
+  try { joinService(user.url, { quiet: true }); toast("正在连接这位朋友…"); }
+  catch (error) { pendingLanAction = null; toast(String(error)); }
+  refreshNearbyList();
+}
+function renderNearby(root) {
+  const header = el("div", null, "nearby-header");
+  const copy = el("div"); copy.append(el("h3", "附近的人"), el("p", "同一个 Wi-Fi，打开就能遇见。", "muted"));
+  const refresh = button("刷新附近", () => scanNearby()); refresh.disabled = !desktop || !lanEnabled();
+  header.append(copy, refresh);
+  root.append(header, el("p", "", "lan-state"), el("div", null, "nearby-users"));
+  if (desktop) {
+    const tools = el("div", null, "nearby-tools");
+    tools.append(button(lanEnabled() ? "局域网发现已开启" : "开启局域网发现", () => startAutomaticLan()));
+    root.append(tools);
+  }
+  refreshNearbyList();
+}
 function renderRooms(root) {
+  renderNearby(root);
   if(lanInfo) {
-    root.append(el("h3","局域网房主已开启"));
-    for(const address of lanInfo.addresses.filter(privateService)) {
+    const advanced = el("details", null, "advanced-network");
+    advanced.append(el("summary", "高级网络信息"));
+    for(const address of (lanInfo.addresses || []).filter(privateService)) {
       const input=el("input");input.readOnly=true;input.value=address.replace(/^http:\/\//,"");
-      const line=el("div",null,"inline-form");line.append(input,copyAction(input,"复制局域网地址","局域网地址已复制。"));root.append(line);
+      const line=el("div",null,"inline-form");line.append(input,copyAction(input,"复制局域网地址","局域网地址已复制。"));advanced.append(line);
     }
-    root.append(button("关闭局域网房主",async()=>{await native("stop_lan_host");lanInfo=null;clientStorage.setItem("lumpa.lan.hostEnabled","0");toast("局域网房主已关闭。");}));
+    advanced.append(button("关闭局域网发现",async()=>{clientStorage.setItem("lumpa.lan.enabled","0");await native("stop_lan_host");lanInfo=null;lanHosts=[];enterPersonal();renderPanel();toast("已关闭局域网发现，可继续离线陪伴。");}));
+    root.append(advanced);
   }
   const offline = el("div", null, "actions park-quick");
   offline.append(button("我的离线乐园", () => { enterPersonal(); closePanel(); }));
-  if (!online) offline.append(button("连接好友", () => openPanel("connect")));
+  offline.append(button("连接好友", () => openPanel("connect")));
   if (desktop || detached) offline.append(button("叫宠物回家", async () => { await returnPet(); closePanel(); }));
   if (desktop) offline.append(button("打开主界面", () => native("show_main_window")));
   root.append(offline);
-  if (game && !game.result) root.append(button("继续对局", () => openPanel("game"), "primary"));
-  if (gameInvite?.expires > Date.now()) root.append(button("查看对战邀请", () => openPanel("challenge")));
+  const management = el("details", null, "park-management");
+  management.append(el("summary", "我的乐园与桌面设置"));
+  root.append(management);
+  if (game && !game.result) management.append(button("继续对局", () => openPanel("game"), "primary"));
+  if (gameInvite?.expires > Date.now()) management.append(button("查看对战邀请", () => openPanel("challenge")));
   if (room) {
     const quick = el("div", null, "actions park-quick");
     quick.append(button(showsBackdrop() ? "收回桌边" : "打开乐园", () => {
@@ -761,7 +875,7 @@ function renderRooms(root) {
       quick.append(button("邀请好友", () => openPanel("share"), "primary"));
     }
     if (owner === me) quick.append(button("布置乐园", startDesign, "primary"));
-    root.append(quick);
+    management.append(quick);
   }
   const form = el("form", null, "inline-form");
   const title = el("input");
@@ -776,7 +890,7 @@ function renderRooms(root) {
     event.preventDefault();
     if (title.value.trim() && transmit("room.create", { title: title.value })) closePanel();
   };
-  root.append(form);
+  management.append(form);
   const join = el("form", null, "inline-form join-code-form");
   const code = el("input");
   code.required = true;
@@ -793,14 +907,14 @@ function renderRooms(root) {
     if (!/^[23456789A-HJ-NP-Z]{12}$/.test(normalized)) { toast("请输入 12 位房间码。"); return; }
     if (transmit("room.join", { code: normalized })) closePanel();
   };
-  if (online) root.append(join);
+  if (online) management.append(join);
   for (const [heading, parks] of [
     ["我的乐园", overview.rooms.filter(item => item.owner === me)],
     ["好友与受邀乐园", overview.rooms.filter(item => item.owner !== me)],
   ]) {
     if (!parks.length) continue;
-    root.append(el("h3", heading));
-    for (const item of parks) root.append(row(item.title, `${item.owner === me ? "" : (item.ownerName || "好友") + " · "}${item.count} 位在线`,
+    management.append(el("h3", heading));
+    for (const item of parks) management.append(row(item.title, `${item.owner === me ? "" : (item.ownerName || "好友") + " · "}${item.count} 位在线`,
       button(item.id === room ? "当前房间" : "串门", () => {
         if (item.id !== room) transmit("room.join", { room: item.id });
         closePanel();
@@ -817,9 +931,11 @@ function renderRooms(root) {
     const submit = el("button", "添加好友", "primary"); submit.type = "submit";
     add.append(value, submit);
     add.onsubmit = event => { event.preventDefault(); if (transmit("friend.request", {code:value.value})) value.value = ""; };
-    root.append(el("p", "我的好友码 · 双方连接同一个局域网房主后添加", "muted"), codeLine, add);
+    const codes = el("details", null, "friend-code-details");
+    codes.append(el("summary", "使用好友码添加"), el("p", "也可以复制好友码，请对方添加。附近用户直接点「加好友」即可。", "muted"), codeLine, add);
+    root.append(codes);
   }
-  if (!overview.requests.length && !overview.friends.length) root.append(el("p", online ? "用好友码添加朋友，也可以点击同桌宠物加好友。" : "开启局域网或连接房主后，可以添加好友并邀请到桌面。", "muted"));
+  if (!overview.requests.length && !overview.friends.length) root.append(el("p", online ? "在上方附近列表添加朋友，接受后就能邀请到桌面。" : "打开局域网发现后，朋友会出现在上方列表。", "muted"));
   for (const contact of overview.requests) {
     const actions = el("div", null, "actions");
     actions.append(button("接受", () => transmit("friend.reply", { to: contact.id, accept: true }), "primary"),
@@ -846,34 +962,36 @@ function renderVisits(root) {
   }
 }
 function renderConnection(root) {
-  root.append($("welcome")); $("welcome").hidden = false;
+  renderNearby(root);
+  const profile = el("details", null, "profile-settings");
+  const welcome = $("welcome");
+  welcome.hidden = false;
+  profile.append(el("summary", "我的昵称与宠物"), welcome);
+  root.append(profile);
   if (!desktop) return;
-  const area=el("section",null,"lan-connect");
-  area.append(el("h3","免费局域网试玩"), el("p","两台电脑连接同一个 Wi-Fi 或有线局域网。一人开启房主，另一人搜索后加入，无需购买服务器。","muted"));
-  const actions=el("div",null,"actions");
-  actions.append(button("开启局域网房主",async event=>{
-    const target=event.currentTarget; target.disabled=true; target.textContent="正在启动…";
-    try {
-      lanInfo=await native("start_lan_host");
-      clientStorage.setItem("lumpa.lan.hostEnabled","1");
-      joinService(lanInfo.url);
-      toast("局域网房主已开启。好友选择搜索局域网房主即可加入。");
-    } catch(error) {toast(String(error)); target.disabled=false; target.textContent="开启局域网房主";}
-  },"primary"));
-  const found=el("div",null,"lan-hosts");
-  actions.append(button("搜索局域网房主",async event=>{
-    const target=event.currentTarget; target.disabled=true; target.textContent="正在搜索…"; found.replaceChildren();
-    try {
-      const hosts=await native("discover_lan_hosts");
-      for(const host of hosts) found.append(row(host.name || "局域网房主",host.url,button("加入",()=>{try{joinService(host.url);}catch(error){toast(error.message);}},"primary")));
-      if(!hosts.length) found.append(el("p","没有发现房主：确认房主已开启、双方在同一局域网，并允许 Windows 防火墙的专用网络访问。也可以输入下方局域网地址。","muted"));
-    } catch(error){toast(String(error));}
-    finally{target.disabled=false;target.textContent="搜索局域网房主";}
-  }));
-  const manual=el("form",null,"inline-form lan-address-form"); const address=el("input"); address.placeholder="房主地址，如 192.168.1.8:4185"; address.setAttribute("aria-label","局域网房主地址");
-  const enter=el("button","加入房主","quiet"); enter.type="submit"; manual.append(address,enter);
-  manual.onsubmit=event=>{event.preventDefault();try{joinService(/^https?:\/\//.test(address.value)?address.value:"http://"+address.value.trim());}catch(error){toast(error.message);}};
-  area.append(actions,found,manual); root.prepend(area);
+  const manual = el("details", null, "advanced-network");
+  manual.append(el("summary", "高级连接 · 自动发现不可用时"),
+    el("p", "正常使用无需填写地址。若 Wi-Fi 屏蔽广播，可输入好友提供的完整地址；只填 IP 时会补上 4185 端口。", "muted"));
+  manual.append(button("开启局域网房主", async () => { await startAutomaticLan(); if (lanInfo) joinService(lanInfo.url); }));
+  const found = el("div", null, "lan-hosts");
+  manual.append(button("搜索局域网房主", async () => {
+    await scanNearby(); found.replaceChildren();
+    const seen = new Set();
+    for (const host of lanHosts) {
+      const key = host.serverId || host.url;
+      if (seen.has(key)) continue; seen.add(key);
+      found.append(row(host.name || "局域网设备", host.url, button("加入", () => {
+        try { joinService(host.url); } catch (error) { toast(String(error)); }
+      })));
+    }
+    if (!seen.size) found.append(el("p", "没有发现设备。确认同一 Wi-Fi，并允许 Windows 专用网络访问；访客 Wi-Fi 的设备隔离可能阻止连接。", "muted"));
+  }), found);
+  const form = el("form", null, "inline-form lan-address-form");
+  const address = el("input"); address.placeholder = "房主 IP 或完整地址"; address.setAttribute("aria-label", "局域网房主地址");
+  const submit = el("button", "连接", "quiet"); submit.type = "submit";
+  form.append(address, submit);
+  form.onsubmit = event => { event.preventDefault(); try { joinService(address.value); } catch (error) { toast(String(error)); } };
+  manual.append(form); root.append(manual);
 }
 function renderPerson(root) {
   const contact = findPerson(person);
@@ -888,9 +1006,29 @@ function renderPerson(root) {
   } else actions.append(button("加为好友", () => transmit("friend.request", { to: contact.id }), "primary"));
   root.append(el("p", contact.online ? "在线" : "离线", "muted"), actions);
   if (contact.online) {
-    root.append(el("h3", "发起对战"));
-    for (const [id, rule] of Object.entries(gameRules)) root.append(row(rule.name, "双人对弈",
-      button("邀请", () => transmit("game.invite", { to: contact.id, game: id }))));
+    root.append(el("h3", `挑战 ${contact.name}`, "game-picker-heading"));
+    let recent = [];
+    try { recent = JSON.parse(clientStorage.getItem("lumpa.recentGames") || "[]"); } catch {}
+    const invite = kind => {
+      if (transmit("game.invite", { to: contact.id, game: kind })) {
+        clientStorage.setItem("lumpa.recentGames", JSON.stringify([kind, ...recent.filter(id => id !== kind)].slice(0, 3)));
+        toast(`已邀请 ${contact.name} 玩${gameRules[kind].name}，等待对方接受。`);
+      }
+    };
+    const recentLine = el("div", null, "recent-games");
+    recentLine.append(el("span", "最近玩过"));
+    for (const kind of recent.filter(id => gameRules[id]).slice(0, 2)) recentLine.append(button(gameRules[kind].name, () => invite(kind), "recent-game"));
+    if (recentLine.children.length > 1) root.append(recentLine);
+    const grid = el("div", null, "game-picker-grid");
+    for (const [kind, rule] of Object.entries(gameRules)) {
+      const option = el("div", null, "game-option list-row");
+      const card = button("", () => invite(kind), "game-card"); card.dataset.gameKind = kind;
+      const icon = el("span", kind === "xiangqi" ? "帥" : kind === "gomoku" ? "●" : "×", "game-glyph " + kind);
+      icon.setAttribute("aria-hidden", "true");
+      const copy = el("span", null, "game-card-copy"); copy.append(el("strong", rule.name), el("small", "2 人对弈"));
+      card.append(icon, copy); option.append(card); grid.append(option);
+    }
+    root.append(grid, el("p", "朋友接受后，就能直接在桌面开局。", "game-picker-footnote"));
   }
 }
 
@@ -1301,10 +1439,11 @@ if (desktop) {
 }
 enterPersonal();
 if (inviteCode) openPanel("connect");
+else if (params.get("panel") === "connect") openPanel("connect");
 if (inviteCode && savedName && clientStorage.getItem(stateKey("session"))) connect(savedName);
-else if (desktop && savedName && clientStorage.getItem("lumpa.lan.hostEnabled") === "1") {
-  native("start_lan_host").then(info=>{lanInfo=info;joinService(info.url);}).catch(error=>toast(String(error)));
-} else if (desktop && savedName && clientStorage.getItem(stateKey("session"))) connect(savedName);
+else if (desktop && lanEnabled()) startAutomaticLan();
 updateParkDisplay();
 resizeDesktop();
 if (desktop) native("social_frontend_ready").catch(console.warn);
+const nearbyTimer = setInterval(() => { if (!closing && ["rooms", "connect"].includes(page)) scanNearby(); }, 8000);
+window.addEventListener("pagehide", () => clearInterval(nearbyTimer), { once: true });

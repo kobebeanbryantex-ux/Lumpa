@@ -6,7 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 const exe=resolve(process.argv[2]||"src-tauri/target/release/rabbit-desk-pet.exe");
 mkdirSync("artifacts",{recursive:true});
 const dir=mkdtempSync(resolve("artifacts/native-park-qa-"));
-const channels=[];let social;
+const channels=[];let social,pet;
 const app=spawn(exe,[],{windowsHide:false,stdio:"ignore",env:{...process.env,WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:"--remote-debugging-port=9229 --remote-debugging-address=127.0.0.1",WEBVIEW2_USER_DATA_FOLDER:join(dir,"webview")}});
 let chrome;
 async function until(test,why,limit=200){for(let n=0;n<limit;n++){if(await test())return;await sleep(100);}throw new Error(why);}
@@ -28,13 +28,14 @@ const geometry=page=>invoke(page,"social_window_geometry");
 try {
  await until(()=>target("friends.html"),"The native desktop park did not open automatically.");
  social=await attach((await target("friends.html")).webSocketDebuggerUrl);
+ await until(()=>social.js("document.querySelector('#connection')?.textContent.includes('已联机')"),'Automatic native LAN startup failed.',400);
  if(process.env.LUMPA_QA_DISABLE_MAIN_TIMERS==='1') {
    const pages=await get('http://127.0.0.1:9229/json/list');const mainTarget=pages.find(page=>/tauri\.localhost\/(?:index\.html)?$/.test(page.url));
    if(mainTarget){const main=await attach(mainTarget.webSocketDebuggerUrl);await main.js('for(let timer=1;timer<10000;timer++)clearInterval(timer)');}
  }
  await until(()=>social.js("Boolean(document.querySelector('.mine'))&&document.body.classList.contains('native-pet-ready')"),"Native pet did not dock.");
  await until(()=>target("free-pet.html"),"The independent pet window is missing.");
- let pet=await attach((await target("free-pet.html")).webSocketDebuggerUrl);
+ pet=await attach((await target("free-pet.html")).webSocketDebuggerUrl);
  await until(()=>pet.js("typeof document.querySelector('button').onpointerdown==='function'&&[...document.querySelector('canvas').getContext('2d').getImageData(0,0,144,144).data].some((v,i)=>i%4===3&&v>128)"),"The independent pet renderer did not become interactive.");
  if(process.env.LUMPA_QA_SETTLE_MS) await sleep(Number(process.env.LUMPA_QA_SETTLE_MS));
  const corner=await geometry(social);const area=corner.workArea;
@@ -76,13 +77,14 @@ try {
  await social.js("document.querySelector('#view-switch').click()");
  await until(async()=>!await social.js("document.body.classList.contains('park-full')")&&(await geometry(social)).size.height/(await geometry(social)).scale<=168,'Returning from an applied background left the window expanded.');
  await social.cmd('Page.reload');
- await until(()=>social.js("Boolean(document.querySelector('.mine'))&&document.body.classList.contains('native-pet-ready')"),'Reloading the scene left the pet blank.');
+ await until(()=>social.js("Boolean(document.querySelector('.mine'))&&document.body.classList.contains('native-pet-ready')&&document.querySelector('#connection').textContent.includes('已联机')"),'Reloading the scene left the pet blank or not online.');
  await until(()=>pet.js("typeof document.querySelector('button').onpointerdown==='function'"),'Pet lost its drag handler after reopening.');
  await invoke(main,'close_window');
  const original=await geometry(pet);
  const pixelRatio=await pet.js("devicePixelRatio");console.log('Native pet geometry',JSON.stringify({original,pixelRatio,inner:await pet.js('[innerWidth,innerHeight]')}));
  const before=await pet.js("document.querySelector('canvas').toDataURL()");
  await pet.js("window.qaEvents=[];for(const type of ['pointerdown','pointermove','pointerup'])window.addEventListener(type,event=>{if(window.qaEvents.length<80)window.qaEvents.push({time:Date.now(),type:event.type,x:event.clientX,y:event.clientY,screenX:event.screenX,screenY:event.screenY,button:event.button,target:event.target.tagName,url:location.href})})");
+ await pet.js("window.qaSamples=[];const originalInvoke=window.__TAURI_INTERNALS__.invoke;window.__TAURI_INTERNALS__.invoke=async function(command,args,options){try{const value=await originalInvoke.call(this,command,args,options);if(['desktop_drag_sample','park_pet_position'].includes(command)&&window.qaSamples.length<200)window.qaSamples.push({command,value});return value;}catch(error){window.qaSamples.push({command,error:String(error)});throw error;}};");
  await social.js("window.qaMotion=[];window.addEventListener('storage',event=>{if(event.key==='lumpa.freePet.position'&&window.qaMotion.length<100)window.qaMotion.push(JSON.parse(event.newValue));})");
  const [buttonX,buttonY]=await pet.js("(()=>{const c=document.querySelector('canvas'),r=c.getBoundingClientRect(),data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let best=[72,104],score=Infinity;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){const d=(x-72)**2+(y-104)**2;if(data[(y*c.width+x)*4+3]>220&&d<score){best=[x,y];score=d;}}return[r.x+(best[0]+.5)*r.width/c.width,r.y+(best[1]+.5)*r.height/c.height];})()");
  const fromX=Math.round(original.position.x+buttonX*pixelRatio),fromY=Math.round(original.position.y+buttonY*pixelRatio);
@@ -118,6 +120,7 @@ try {
  await until(()=>social.js("document.querySelector('#connection').textContent.includes('已联机')"),"The bundled LAN service did not start.",400);
  const info=await invoke(social,"start_lan_host");
  const hosts=await invoke(social,"discover_lan_hosts");assert(hosts.some(host=>new URL(host.url).port===String(info.port)),"LAN discovery did not find the bundled host.");
+ assert(hosts.some(host=>host.users?.some(user=>user.name==='原生主机')),'Native discovery did not return online user profiles.');
  const address=info.addresses.find(url=>/^http:\/\/(?:192\.168\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(url));
  assert(address,"No private LAN IPv4 address is available for this PC.");
  assert.equal((await fetch(address+"/friends.html")).status,200,"The host is not accessible on its LAN address.");
@@ -133,7 +136,7 @@ try {
  const code=await guest.js("document.querySelector('#friend-code').value");
  await social.js(`document.querySelector('.friend-code-form input').value=${JSON.stringify(code)};document.querySelector('.friend-code-form').requestSubmit()`);
  await until(()=>guest.js("document.querySelector('#panel-content').innerText.includes('好友申请')"),"LAN friend request did not arrive.");
- await click(guest,"接受");await until(()=>social.js("document.querySelector('#panel-content').innerText.includes('邀请到桌面')"),"LAN friendship did not synchronize.");
+ await click(guest,"接受");await until(()=>social.js("[...document.querySelectorAll('#panel-content button')].some(button=>button.textContent.trim()==='邀请到桌面'&&!button.disabled&&!button.closest('[hidden]'))"),"LAN friendship did not synchronize.");
  await click(social,"邀请到桌面");await until(()=>guest.js("document.querySelector('#panel-content').innerText.includes('接受桌面邀请')"),"LAN desktop invitation missing.");await click(guest,"接受桌面邀请");
  await until(()=>social.js("document.querySelectorAll('.avatar').length===2&&!document.body.classList.contains('park-full')&&document.querySelector('#panel').hidden"),"LAN visitor did not appear directly on the desktop.");
  const final=await geometry(social);assert(final.size.height/final.scale<=168,"Accepting a desktop invite left the park expanded.");
@@ -156,12 +159,13 @@ try {
  await social.js("document.querySelector('#toast').hidden=true");
  await sleep(150);
  execFileSync("powershell.exe",["-NoProfile","-ExecutionPolicy","Bypass","-File",resolve("scripts/qa-native-input.ps1"),"-Screenshot",join(dir,"native-corner.png"),"-X",String(final.position.x),"-Y",String(final.position.y),"-Width",String(final.size.width),"-Height",String(final.size.height)],{windowsHide:true});
- const report={geometry:corner,movedPet:moved,actualDragAnimated:animated,physicalDrags:3,lanAddress:address,discovered:hosts,friendCode:code,desktopVisitor:true,independentGuest:peerPosition,originalFocusPage:true,mainPetSwitch:true,closeReopenCycles:3,reloadedPet:true,appliedBackgroundReturn:true};
+ const report={geometry:corner,movedPet:moved,actualDragAnimated:animated,physicalDrags:3,automaticLAN:true,nativeOnlineProfiles:true,lanAddress:address,discovered:hosts,friendCode:code,desktopVisitor:true,independentGuest:peerPosition,originalFocusPage:true,mainPetSwitch:true,closeReopenCycles:3,reloadedPet:true,appliedBackgroundReturn:true};
  writeFileSync(join(dir,"verification.json"),JSON.stringify(report,null,2));
  console.log("Verified native right/bottom alignment, real mouse full-screen drag and walking, double-click return, bundled LAN host, discovery, LAN-address guest, friend code and desktop invitation.");
  console.log(dir);
 } catch(error) {
- writeFileSync(join(dir,'failure.json'),JSON.stringify({error:String(error),logs:social?.logs},null,2));
+ let sample;try{sample={text:await social.js('document.body.innerText'),buttons:await social.js("[...document.querySelectorAll('button')].map(button=>({text:button.textContent.trim(),disabled:button.disabled,hidden:Boolean(button.closest('[hidden]'))}))"),geometry:await geometry(pet),events:await pet.js('window.qaEvents'),samples:await pet.js('window.qaSamples'),free:await social.js("localStorage.getItem('lumpa.freePet.free')"),position:await social.js("localStorage.getItem('lumpa.freePet.position')"),motion:await social.js('window.qaMotion'),petLogs:pet.logs};}catch{}
+ writeFileSync(join(dir,'failure.json'),JSON.stringify({error:String(error),logs:social?.logs,sample},null,2));
  console.error('Native regression evidence: '+dir);
  throw error;
 } finally {

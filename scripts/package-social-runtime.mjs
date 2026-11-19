@@ -14,7 +14,7 @@ try {
   const license=join(root,"vendor/node-runtime-LICENSE.txt");
   if(!existsSync(license)) throw new Error("Missing vendor/node-runtime-LICENSE.txt for the bundled Node version.");
   cpSync(license,join(stage,"NODE-LICENSE.txt"));
-  for (const path of ["services/social/server.mjs", "src/social-games.js", "src/xiangqi.js", "src/park-layout.js", "node_modules/ws", "dist"]) {
+  for (const path of ["services/social/server.mjs", "services/social/lan-discovery.mjs", "src/social-games.js", "src/xiangqi.js", "src/park-layout.js", "node_modules/ws", "dist"]) {
     const target=join(stage,path);
     mkdirSync(resolve(target,".."),{recursive:true});
     cpSync(join(root,path),target,{recursive:true});

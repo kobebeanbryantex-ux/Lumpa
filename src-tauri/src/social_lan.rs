@@ -132,6 +132,26 @@ pub async fn discover_lan_hosts(window: tauri::WebviewWindow) -> Result<Vec<Valu
     if window.label() != "social" {
         return Err("窗口无效".into());
     }
+    let mut targets = vec![
+        "255.255.255.255:4189".to_string(),
+        "127.0.0.1:4189".to_string(),
+    ];
+    if let Ok(host) = window.state::<LanHostState>().0.lock() {
+        if let Some((_, info)) = host.as_ref() {
+            if let Some(addresses) = info["broadcasts"].as_array() {
+                for address in addresses {
+                    if let Some(address) = address
+                        .as_str()
+                        .and_then(|text| text.parse::<std::net::Ipv4Addr>().ok())
+                    {
+                        if address.is_private() {
+                            targets.push(format!("{}:4189", address));
+                        }
+                    }
+                }
+            }
+        }
+    }
     tauri::async_runtime::spawn_blocking(move || {
         let socket = UdpSocket::bind("0.0.0.0:0").map_err(|e| e.to_string())?;
         socket.set_broadcast(true).map_err(|e| e.to_string())?;
@@ -140,12 +160,13 @@ pub async fn discover_lan_hosts(window: tauri::WebviewWindow) -> Result<Vec<Valu
             .map_err(|e| e.to_string())?;
         let nonce = format!("{:016x}", rand::random::<u64>());
         let request = serde_json::to_vec(&json!({"type":"lumpa-discover","nonce":nonce})).unwrap();
-        for address in ["255.255.255.255:4189", "127.0.0.1:4189"] {
+        targets.sort(); targets.dedup();
+        for address in targets {
             let _ = socket.send_to(&request, address);
         }
         let start = Instant::now();
         let mut hosts = Vec::new();
-        let mut bytes = [0u8; 2048];
+        let mut bytes = [0u8; 16384];
         while start.elapsed() < Duration::from_secs(3) {
             if let Ok((length, peer)) = socket.recv_from(&mut bytes) {
                 let Ok(info) = serde_json::from_slice::<Value>(&bytes[..length]) else {
@@ -166,7 +187,8 @@ pub async fn discover_lan_hosts(window: tauri::WebviewWindow) -> Result<Vec<Valu
                 }
                 let url = format!("http://{}:{}", peer.ip(), port);
                 if !hosts.iter().any(|row: &Value| row["url"] == url) {
-                    hosts.push(json!({"url":url,"name":info["name"],"version":info["version"]}));
+                    hosts.push(json!({"url":url,"name":info["name"],"version":info["version"],
+                        "serverId":info["serverId"],"users":info["users"].as_array().map(|users| users.iter().take(24).cloned().collect::<Vec<_>>()).unwrap_or_default()}));
                 }
             }
         }

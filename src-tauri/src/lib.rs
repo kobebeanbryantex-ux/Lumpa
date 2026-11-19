@@ -3463,7 +3463,7 @@ async fn open_social_window(app: tauri::AppHandle) -> Result<(), String> {
         "social",
         tauri::WebviewUrl::App("friends.html".into()),
     )
-    .title("Lumpa · 伴读乐园 1.0.12")
+    .title("Lumpa · 伴读乐园 1.0.13")
     .transparent(true)
     .decorations(false)
     // On Windows, a shadow also draws a border around an undecorated window.
