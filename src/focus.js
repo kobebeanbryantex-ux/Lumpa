@@ -1451,6 +1451,10 @@ export class FocusEngine {
     this.renderLoop = this.renderLoop.bind(this);
     this.animFrameId = null;
 
+    // The small desktop scene renders only idle/walk frames. Do not decode
+    // every pet's full animation pack in each additional window.
+    if (options.preload === false) return;
+
     // 预热全部宠物的待机帧和起步补间帧。
     Object.keys(PET_ARCHETYPES).forEach(id => {
       getPetActionFrameImage(id, "idle", 0);

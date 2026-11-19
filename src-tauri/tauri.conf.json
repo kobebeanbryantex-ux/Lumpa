@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Lumpa",
-  "version": "1.0.8",
+  "version": "1.0.13",
   "identifier": "com.songz.rabbit-desk-pet",
   "build": {
     "beforeDevCommand": "npm run web:dev",
     "devUrl": "http://127.0.0.1:4173",
-    "beforeBuildCommand": "npm run web:build",
+    "beforeBuildCommand": "npm run desktop:prepare",
     "frontendDist": "../dist"
   },
   "app": {
@@ -26,14 +26,16 @@
         "alwaysOnTop": false,
         "skipTaskbar": false,
         "shadow": true,
-        "center": true
+        "center": true,
+        "visible": false,
+        "url": "launcher.html"
       }
     ],
     "security": {
       "csp": {
         "default-src": "'self'",
         "base-uri": "'none'",
-        "connect-src": "ipc: http://ipc.localhost",
+        "connect-src": "ipc: http://ipc.localhost https: wss: http: ws:",
         "font-src": "'self'",
         "frame-ancestors": "'none'",
         "img-src": "'self' asset: http://asset.localhost data: blob:",

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lumpa · 伴读乐园</title>
+    <link rel="icon" href="/assets/app-icon.png">
+  </head>
+  <body class="social-page">
+    <main class="neighborhood">
+      <div id="park-backdrop" class="park-backdrop" aria-hidden="true"></div>
+      <header class="masthead">
+        <a class="brand" href="/index.html" aria-label="Lumpa 首页"><span class="brand-mark">L</span><span>Lumpa<small>伴读乐园 · 1.0.13</small></span></a>
+        <div class="head-actions">
+          <span id="connection" class="connection"><i></i><span>未连接</span></span>
+          <button id="focus-toggle" class="quiet" type="button">工位伴读</button>
+          <button id="room-toggle" class="quiet" type="button" hidden>房间与好友</button>
+          <button id="desktop-close" class="quiet" type="button" hidden aria-label="关闭联机浮窗">×</button>
+        </div>
+      </header>
+      <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+        <p class="eyebrow">LUMPA NEIGHBORHOOD</p>
+        <h1 id="welcome-title">带宠物去串门。</h1>
+        <p id="welcome-description">开一间小屋，邀请好友来桌边坐坐。</p>
+        <form id="connect-form">
+          <label for="nickname">你的昵称</label>
+          <div class="inline-form">
+            <input id="nickname" autocomplete="nickname" maxlength="24" placeholder="给自己取个名字" required>
+            <button class="primary" type="submit">保存并上线</button>
+          </div>
+          <label id="starter-field" for="starter-pet">带哪只宠物去串门</label>
+          <select id="starter-pet"></select>
+          <details id="server-settings" hidden>
+            <summary>高级手动连接</summary>
+            <label id="server-field">服务地址<input id="server-url" type="text" placeholder="例如 192.168.1.8:4185"></label>
+          </details>
+          <p id="connect-feedback" class="connection-feedback" role="status"></p>
+        </form>
+      </section>
+      <section id="room-view" class="room-view" aria-label="宠物活动区域" hidden>
+        <button id="focus-mini" class="focus-mini" type="button" title="打开专注计时与待办">开始伴读</button>
+        <div class="room-header">
+          <div><p class="eyebrow">LUMPA NEIGHBORHOOD</p><h1 id="room-title">我的小屋</h1><p id="room-population"></p></div>
+          <div class="room-actions">
+            <button id="view-switch" class="quiet" type="button">桌面预览</button>
+            <button id="park-edit" class="quiet" type="button" hidden>布置乐园</button>
+            <button id="share" class="primary" type="button">邀请好友</button>
+          </div>
+        </div>
+        <div id="terrace" class="terrace">
+          <div id="park-furniture" class="park-furniture"></div>
+          <div id="pets" class="pets"></div>
+          <div class="floor" aria-hidden="true"></div>
+        </div>
+        <footer class="room-footer"><span>拖动你的宠物，让它沿桌边走。</span><button id="my-pet" class="quiet" type="button">换宠物</button></footer>
+      </section>
+      <aside id="panel" class="drawer" aria-label="好友小屋操作" hidden>
+        <header><h2 id="panel-title"></h2><button id="panel-close" class="icon" type="button" aria-label="关闭面板">×</button></header>
+        <div id="panel-content"></div>
+      </aside>
+      <div id="toast" class="toast" role="status" hidden></div>
+    </main>
+    <script type="module" src="/src/social-ui.js"></script>
+  </body>
+</html>
